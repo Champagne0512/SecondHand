@@ -5,7 +5,16 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
+
 // 应用根组件
+const userStore = useUserStore()
+
+onMounted(async () => {
+  // 初始化用户状态
+  await userStore.initUser()
+})
 </script>
 
 <style>

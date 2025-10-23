@@ -89,12 +89,10 @@ export const supabaseUserApi = {
 export const supabaseProductApi = {
   // 获取商品列表
   getProducts: async (params?: { category?: string; keyword?: string; page?: number; limit?: number }) => {
+    // 先获取商品数据
     let query = supabase
       .from('products')
-      .select(`
-        *,
-        profiles:profiles(username, avatar_url)
-      `)
+      .select('*')
       .eq('status', 'available')
 
     // 应用筛选条件
@@ -114,71 +112,104 @@ export const supabaseProductApi = {
 
     query = query.range(from, to).order('created_at', { ascending: false })
 
-    const { data, error } = await query
+    const { data: productsData, error: productsError } = await query
 
-    if (error) throw error
+    if (productsError) throw productsError
+
+    if (!productsData || productsData.length === 0) {
+      return []
+    }
+
+    // 获取卖家信息
+    const sellerIds = [...new Set(productsData.map(p => p.seller_id))]
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', sellerIds)
+
+    if (profilesError) throw profilesError
+
+    // 创建卖家信息映射
+    const profilesMap = new Map()
+    if (profilesData) {
+      profilesData.forEach(profile => {
+        profilesMap.set(profile.id, profile)
+      })
+    }
 
     // 转换数据格式
-    return data.map(item => ({
-      id: item.id,
-      title: item.title,
-      description: item.description,
-      price: item.price,
-      originalPrice: item.original_price,
-      category: item.category,
-      images: item.images,
-      condition: item.condition,
-      sellerId: item.seller_id,
-      sellerName: item.profiles?.username,
-      sellerAvatar: item.profiles?.avatar_url,
-      status: item.status,
-      location: item.location,
-      contactInfo: item.contact_info,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at,
-      viewCount: item.view_count,
-      likeCount: item.like_count
-    }))
+    return productsData.map(item => {
+      const profile = profilesMap.get(item.seller_id)
+      return {
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        price: item.price,
+        originalPrice: item.original_price,
+        category: item.category,
+        images: item.images,
+        condition: item.condition,
+        sellerId: item.seller_id,
+        sellerName: profile?.username || '未知用户',
+        sellerAvatar: profile?.avatar_url,
+        status: item.status,
+        location: item.location,
+        contactInfo: item.contact_info,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        viewCount: item.view_count || 0,
+        likeCount: item.like_count || 0
+      }
+    })
   },
 
   // 获取商品详情
   getProduct: async (id: string) => {
-    const { data, error } = await supabase
+    // 获取商品数据
+    const { data: productData, error: productError } = await supabase
       .from('products')
-      .select(`
-        *,
-        profiles:profiles(username, avatar_url)
-      `)
+      .select('*')
       .eq('id', id)
       .single()
 
-    if (error) throw error
+    if (productError) throw productError
+
+    // 获取卖家信息
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('id', productData.seller_id)
+      .single()
+
+    if (profileError) {
+      console.warn('获取卖家信息失败:', profileError)
+    }
 
     // 增加浏览量
     await supabase
       .from('products')
-      .update({ view_count: (data.view_count || 0) + 1 })
+      .update({ view_count: (productData.view_count || 0) + 1 })
       .eq('id', id)
 
     return {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      price: data.price,
-      originalPrice: data.original_price,
-      category: data.category,
-      images: data.images,
-      condition: data.condition,
-      sellerId: data.seller_id,
-      sellerName: data.profiles?.username,
-      sellerAvatar: data.profiles?.avatar_url,
-      status: data.status,
-      location: data.location,
-      contactInfo: data.contact_info,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      viewCount: data.view_count + 1,
-      likeCount: data.like_count
+      id: productData.id,
+      title: productData.title,
+      description: productData.description,
+      price: productData.price,
+      originalPrice: productData.original_price,
+      category: productData.category,
+      images: productData.images,
+      condition: productData.condition,
+      sellerId: productData.seller_id,
+      sellerName: profileData?.username || '未知用户',
+      sellerAvatar: profileData?.avatar_url,
+      status: productData.status,
+      location: productData.location,
+      contactInfo: productData.contact_info,
+      createdAt: productData.created_at,
+      updatedAt: productData.updated_at,
+      viewCount: (productData.view_count || 0) + 1,
+      likeCount: productData.like_count || 0
     }
   },
 

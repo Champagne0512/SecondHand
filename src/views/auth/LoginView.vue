@@ -28,12 +28,12 @@
           class="modern-login-form"
           @submit.prevent="handleLogin"
         >
-          <el-form-item prop="username">
+          <el-form-item prop="email">
             <div class="input-container">
               <el-icon class="input-icon"><User /></el-icon>
               <el-input
-                v-model="loginForm.username"
-                placeholder="请输入用户名或邮箱"
+                v-model="loginForm.email"
+                placeholder="请输入邮箱"
                 size="large"
                 class="modern-input"
               />
@@ -113,15 +113,15 @@ const userStore = useUserStore()
 const loginFormRef = ref<FormInstance>()
 
 const loginForm = reactive({
-  username: '',
+  email: '',
   password: '',
   rememberMe: false
 })
 
 const loginRules: FormRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度在 3 到 20 个字符', trigger: 'blur' }
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },

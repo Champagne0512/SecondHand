@@ -109,6 +109,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useProductStore } from '@/stores/products'
 import GlobalNavigation from '@/components/GlobalNavigation.vue'
 import { 
   ShoppingBag, Search, Goods, Plus, User, 
@@ -117,8 +118,11 @@ import {
 
 const router = useRouter()
 const userStore = useUserStore()
+const productsStore = useProductStore()
 
 const searchKeyword = ref('')
+const hotProducts = ref([])
+const isLoading = ref(false)
 
 // 功能模块数据
 const modules = ref([
@@ -156,45 +160,78 @@ const modules = ref([
   }
 ])
 
-// 热门商品数据
-const hotProducts = ref([
-  {
-    id: 1,
-    title: 'MacBook Pro 2021',
-    price: '6800',
-    condition: '几乎全新',
-    location: '计算机学院',
-    time: '2小时前',
-    image: 'https://via.placeholder.com/200x150?text=MacBook'
-  },
-  {
-    id: 2,
-    title: '考研英语词汇书',
-    price: '25',
-    condition: '轻微使用',
-    location: '外国语学院',
-    time: '1天前',
-    image: 'https://via.placeholder.com/200x150?text=英语书'
-  },
-  {
-    id: 3,
-    title: 'AirPods Pro 2代',
-    price: '1200',
-    condition: '几乎全新',
-    location: '电子信息学院',
-    time: '3小时前',
-    image: 'https://via.placeholder.com/200x150?text=AirPods'
-  },
-  {
-    id: 4,
-    title: 'Java编程思想',
-    price: '35',
-    condition: '明显使用',
-    location: '软件学院',
-    time: '5小时前',
-    image: 'https://via.placeholder.com/200x150?text=Java书'
+// 获取热门商品数据
+const fetchHotProducts = async () => {
+  isLoading.value = true
+  try {
+    // 从商品store获取真实数据
+    await productsStore.fetchProducts()
+    
+    // 获取前4个商品作为热门商品
+    const products = productsStore.products.slice(0, 4)
+    
+    hotProducts.value = products.map(product => ({
+      id: product.id,
+      title: product.title,
+      price: product.price.toString(),
+      condition: product.condition,
+      location: product.location,
+      time: '最近发布',
+      image: product.images && product.images.length > 0 
+        ? product.images[0] 
+        : 'https://via.placeholder.com/200x150?text=商品图片'
+    }))
+    
+    // 如果没有真实数据，使用备用数据
+    if (hotProducts.value.length === 0) {
+      hotProducts.value = [
+        {
+          id: 1,
+          title: 'MacBook Pro 2021',
+          price: '6800',
+          condition: '几乎全新',
+          location: '计算机学院',
+          time: '2小时前',
+          image: 'https://via.placeholder.com/200x150?text=MacBook'
+        },
+        {
+          id: 2,
+          title: '考研英语词汇书',
+          price: '25',
+          condition: '轻微使用',
+          location: '外国语学院',
+          time: '1天前',
+          image: 'https://via.placeholder.com/200x150?text=英语书'
+        }
+      ]
+    }
+  } catch (error) {
+    console.error('获取热门商品失败:', error)
+    // 使用备用数据
+    hotProducts.value = [
+      {
+        id: 1,
+        title: 'MacBook Pro 2021',
+        price: '6800',
+        condition: '几乎全新',
+        location: '计算机学院',
+        time: '2小时前',
+        image: 'https://via.placeholder.com/200x150?text=MacBook'
+      },
+      {
+        id: 2,
+        title: '考研英语词汇书',
+        price: '25',
+        condition: '轻微使用',
+        location: '外国语学院',
+        time: '1天前',
+        image: 'https://via.placeholder.com/200x150?text=英语书'
+      }
+    ]
+  } finally {
+    isLoading.value = false
   }
-])
+}
 
 // 搜索处理
 const handleSearch = () => {
@@ -216,7 +253,13 @@ const handleModuleClick = (module: any) => {
 }
 
 // 页面加载动画
-onMounted(() => {
+onMounted(async () => {
+  // 初始化用户信息
+  await userStore.initUser()
+  
+  // 获取热门商品数据
+  await fetchHotProducts()
+  
   // 添加页面加载动画效果
   setTimeout(() => {
     document.body.classList.add('page-loaded')

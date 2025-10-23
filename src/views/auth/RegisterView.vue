@@ -118,7 +118,7 @@ const validatePassword = (rule: any, value: string, callback: any) => {
 const registerRules: FormRules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度在 3 到 20 个字符', trigger: 'blur' }
+    { min: 1, max: 20, message: '用户名长度在 1 到 20 个字符', trigger: 'blur' }
   ],
   email: [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },

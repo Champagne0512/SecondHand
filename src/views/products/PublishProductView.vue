@@ -274,12 +274,14 @@ const handleCancel = () => {
 }
 
 onMounted(async () => {
-  await userStore.initUser()
-  
-  // 如果用户未登录，跳转到登录页
+  // 确保用户状态已初始化
   if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录后再发布商品')
-    router.push('/login')
+    // 尝试初始化用户状态
+    const initialized = await userStore.initUser()
+    if (!initialized) {
+      ElMessage.warning('请先登录后再发布商品')
+      router.push('/login')
+    }
   }
 })
 </script>

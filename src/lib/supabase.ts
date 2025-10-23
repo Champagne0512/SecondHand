@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase配置
-const supabaseUrl = 'https://yxrpcnrcptilmqfvfatd.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4cnBjbnJjcHRpbG1xZnZmYXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExMDM1NDAsImV4cCI6MjA3NjY3OTU0MH0.kwamkHcn7ghEvQP5lQcHiK4I1FCF7F_z141z2ushBGo'
+const supabaseUrl = 'https://zoknoksbkexongublarl.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpva25va3Nia2V4b25ndWJsYXJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExMTIxODIsImV4cCI6MjA3NjY4ODE4Mn0.5aPDhk9IdhrvIN2P7XIvt7vlCeTIRlJeNwe9_m5GMhY'
 
 // 创建Supabase客户端
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

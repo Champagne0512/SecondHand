@@ -160,44 +160,50 @@ export const useUserStore = defineStore('user', () => {
 
   // 初始化用户信息
   const initUser = async () => {
+    // 如果用户已经初始化，直接返回成功
+    if (user.value) {
+      return true
+    }
+    
     try {
       const { data: { session } } = await supabase.auth.getSession()
       
-      if (session && !user.value) {
-        // 简化初始化，避免数据库查询导致的问题
-        user.value = {
-          id: session.user.id,
-          username: session.user.user_metadata?.username || '用户',
-          email: session.user.email || '',
-          phone: session.user.user_metadata?.phone || '',
-          avatar: '/src/assets/default-avatar.png',
-          createdAt: new Date().toISOString()
-        }
-        
-        // 异步获取详细信息，不阻塞页面加载
-        supabase
+      if (session) {
+        // 获取用户profile信息
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single()
-          .then(({ data: profile }) => {
-            if (profile && user.value) {
-              user.value = {
-                ...user.value,
-                username: profile.username,
-                email: profile.email,
-                phone: profile.phone || '',
-                avatar: profile.avatar_url || '/src/assets/default-avatar.png',
-                createdAt: profile.created_at
-              }
-            }
-          })
-          .catch(error => {
-            console.warn('获取用户详细信息失败:', error)
-          })
+
+        if (profile && !profileError) {
+          user.value = {
+            id: session.user.id,
+            username: profile.username,
+            email: profile.email,
+            phone: profile.phone || '',
+            avatar: profile.avatar_url || '/src/assets/default-avatar.png',
+            createdAt: profile.created_at
+          }
+        } else {
+          // 如果没有profile，使用会话信息创建基础用户信息
+          user.value = {
+            id: session.user.id,
+            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || '用户',
+            email: session.user.email || '',
+            phone: session.user.user_metadata?.phone || '',
+            avatar: '/src/assets/default-avatar.png',
+            createdAt: session.user.created_at || new Date().toISOString()
+          }
+        }
+        
+        return true // 返回初始化成功
       }
+      
+      return false // 返回初始化失败
     } catch (error) {
       console.error('初始化用户信息失败:', error)
+      return false
     }
   }
 

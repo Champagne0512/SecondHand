@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { supabase } from '@/lib/supabase'
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -71,7 +72,7 @@ const router = createRouter({
 })
 
 // 路由守卫 - 权限验证
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // 设置页面标题
   if (to.meta.title) {
     document.title = to.meta.title as string
@@ -79,9 +80,21 @@ router.beforeEach((to, from, next) => {
 
   // 检查是否需要登录
   if (to.meta.requiresAuth) {
-    // 简化权限检查，避免pinia初始化时机问题
-    const token = localStorage.getItem('token')
-    if (!token) {
+    try {
+      // 使用Supabase检查当前会话
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        // 没有会话，跳转到登录页
+        next('/login')
+        return
+      }
+      
+      // 用户已有会话，允许访问 - 用户状态初始化由App.vue处理
+      // 避免在这里使用useUserStore防止循环依赖
+    } catch (error) {
+      console.error('验证登录状态失败:', error)
+      // 验证失败，也跳转到登录页
       next('/login')
       return
     }
