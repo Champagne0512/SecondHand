@@ -143,6 +143,8 @@ export const useProductStore = defineStore('products', () => {
   const fetchProductDetail = async (id: string) => {
     isLoading.value = true
     try {
+      console.log('正在获取商品详情，ID:', id)
+      
       // 获取商品数据
       const { data: productData, error: productError } = await supabase
         .from('products')
@@ -150,7 +152,16 @@ export const useProductStore = defineStore('products', () => {
         .eq('id', id)
         .single()
 
-      if (productError) throw productError
+      if (productError) {
+        console.error('获取商品数据失败:', productError)
+        throw new Error(`商品不存在: ${productError.message}`)
+      }
+
+      if (!productData) {
+        throw new Error('商品数据为空')
+      }
+
+      console.log('获取到商品数据:', productData)
 
       // 获取卖家信息
       const { data: profileData, error: profileError } = await supabase
@@ -164,10 +175,14 @@ export const useProductStore = defineStore('products', () => {
       }
 
       // 增加浏览量
-      await supabase
-        .from('products')
-        .update({ view_count: (productData.view_count || 0) + 1 })
-        .eq('id', id)
+      try {
+        await supabase
+          .from('products')
+          .update({ view_count: (productData.view_count || 0) + 1 })
+          .eq('id', id)
+      } catch (viewError) {
+        console.warn('增加浏览量失败:', viewError)
+      }
 
       currentProduct.value = {
         id: productData.id,
@@ -189,8 +204,12 @@ export const useProductStore = defineStore('products', () => {
         viewCount: (productData.view_count || 0) + 1,
         likeCount: productData.like_count || 0
       }
+
+      console.log('商品详情设置成功:', currentProduct.value)
     } catch (error) {
       console.error('获取商品详情失败:', error)
+      currentProduct.value = null
+      // 可以在这里添加更详细的错误处理，比如显示错误消息
     } finally {
       isLoading.value = false
     }
@@ -203,31 +222,90 @@ export const useProductStore = defineStore('products', () => {
       const userStore = useUserStore()
       if (!userStore.user) throw new Error('用户未登录')
 
-      // 上传图片
-      const imageUrls: string[] = []
-      for (const image of form.images) {
-        const fileExt = image.split('.').pop()
-        const fileName = `${Math.random()}.${fileExt}`
-        const filePath = `product-images/${fileName}`
+      console.log('开始发布商品，表单数据:', form)
 
-        // 这里需要将base64或URL转换为File对象，实际项目中需要根据具体实现调整
-        // 暂时使用模拟URL
-        imageUrls.push(`https://yxrpcnrcptilmqfvfatd.supabase.co/storage/v1/object/public/product-images/${fileName}`)
+      // 上传图片到Supabase存储
+      const imageUrls: string[] = []
+      
+      if (form.images && form.images.length > 0) {
+        for (let i = 0; i < form.images.length; i++) {
+          const imageFile = form.images[i]
+          console.log(`处理图片 ${i + 1}:`, imageFile)
+          
+          try {
+            let fileName: string
+            let fileData: File | Blob
+            
+            if (imageFile instanceof File) {
+              // 如果是File对象，直接使用
+              fileName = `${Date.now()}_${i}_${imageFile.name}`
+              fileData = imageFile
+            } else if (typeof imageFile === 'string') {
+              // 如果是base64字符串，转换为File
+              const response = await fetch(imageFile)
+              const blob = await response.blob()
+              fileName = `${Date.now()}_${i}.jpg`
+              fileData = blob
+            } else {
+              throw new Error(`不支持的图片格式: ${typeof imageFile}`)
+            }
+            
+            const filePath = `product-images/${userStore.user.id}/${fileName}`
+            
+            console.log(`上传图片到: ${filePath}`)
+            
+            // 上传到Supabase存储
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('product-images')
+              .upload(filePath, fileData, {
+                cacheControl: '3600',
+                upsert: false
+              })
+
+            if (uploadError) {
+              console.error(`图片 ${i + 1} 上传失败:`, uploadError)
+              throw new Error(`图片上传失败: ${uploadError.message}`)
+            }
+
+            // 获取公开URL
+            const { data: { publicUrl } } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(filePath)
+
+            console.log(`图片 ${i + 1} 公开URL:`, publicUrl)
+            imageUrls.push(publicUrl)
+            
+          } catch (imageError) {
+            console.error(`处理图片 ${i + 1} 失败:`, imageError)
+            // 继续处理下一张图片，而不是失败整个发布
+            continue
+          }
+        }
       }
 
+      // 如果没有图片上传成功，使用默认图片
+      if (imageUrls.length === 0) {
+        console.warn('没有图片上传成功，使用默认图片')
+        imageUrls.push('/src/assets/default-product.jpg')
+      }
+
+      console.log('所有图片URL:', imageUrls)
+
       const productData = {
-        title: form.title,
-        description: form.description,
-        price: form.price,
-        original_price: form.originalPrice,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        price: Number(form.price),
+        original_price: form.originalPrice ? Number(form.originalPrice) : null,
         category: form.category,
         images: imageUrls,
         condition: form.condition,
         seller_id: userStore.user.id,
         status: 'available' as const,
-        location: form.location,
-        contact_info: form.contactInfo
+        location: form.location.trim(),
+        contact_info: form.contactInfo.trim()
       }
+
+      console.log('准备插入商品数据:', productData)
 
       const { data, error } = await supabase
         .from('products')
@@ -235,7 +313,12 @@ export const useProductStore = defineStore('products', () => {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('商品数据插入失败:', error)
+        throw error
+      }
+
+      console.log('商品数据插入成功:', data)
 
       // 添加到本地列表
       const newProduct: Product = {
@@ -260,6 +343,7 @@ export const useProductStore = defineStore('products', () => {
       }
 
       products.value.unshift(newProduct)
+      console.log('商品发布完成，新商品:', newProduct)
       return { success: true, message: '商品发布成功', product: newProduct }
     } catch (error: any) {
       console.error('商品发布失败:', error)

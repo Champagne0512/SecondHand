@@ -13,25 +13,25 @@
         </div>
 
         <!-- 收藏商品列表 -->
-        <section class="favorites-section">
+        <section class="favorites-section" v-loading="isLoading">
           <div class="filters-bar">
             <div class="filter-group">
-              <el-select v-model="sortBy" placeholder="排序方式" size="small">
+              <el-select v-model="sortBy" placeholder="排序方式" size="small" @change="loadFavoriteProducts">
                 <el-option label="按收藏时间" value="time"></el-option>
                 <el-option label="按价格从低到高" value="price-asc"></el-option>
                 <el-option label="按价格从高到低" value="price-desc"></el-option>
               </el-select>
             </div>
             <div class="favorites-count">
-              共 {{ favoriteProducts.length }} 件收藏商品
+              共 {{ sortedFavoriteProducts.length }} 件收藏商品
             </div>
           </div>
 
           <!-- 收藏商品网格 -->
-          <div class="favorites-grid" v-if="favoriteProducts.length > 0">
+          <div class="favorites-grid" v-if="sortedFavoriteProducts.length > 0">
             <div 
               class="favorite-card" 
-              v-for="product in favoriteProducts" 
+              v-for="product in sortedFavoriteProducts" 
               :key="product.id"
               @click="$router.push(`/products/${product.id}`)"
             >
@@ -43,6 +43,7 @@
                     size="small" 
                     circle
                     @click.stop="removeFromFavorites(product.id)"
+                    :loading="isLoading"
                   >
                     <el-icon><Delete /></el-icon>
                   </el-button>
@@ -51,18 +52,33 @@
               </div>
               <div class="favorite-info">
                 <h4 class="product-title">{{ product.title }}</h4>
-                <p class="product-price">¥{{ product.price }}</p>
+                <p class="product-price">
+                  <span class="current-price">¥{{ product.price }}</span>
+                  <span v-if="product.originalPrice && product.originalPrice > product.price" class="original-price">
+                    ¥{{ product.originalPrice }}
+                  </span>
+                </p>
                 <div class="product-meta">
-                  <span class="product-location">{{ product.location }}</span>
-                  <span class="favorite-time">收藏于 {{ product.favoriteTime }}</span>
+                  <span class="product-location">📍 {{ product.location }}</span>
+                  <span class="favorite-time">❤️ 收藏于 {{ formatDate(product.favoriteTime) }}</span>
+                </div>
+                <div class="product-stats">
+                  <span class="view-count">👁️ {{ product.viewCount }}</span>
+                  <span class="like-count">❤️ {{ product.likeCount }}</span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 空状态 -->
-          <div class="empty-state" v-else>
+          <div class="empty-state" v-else-if="!isLoading">
             <el-empty description="暂无收藏商品">
+              <template #description>
+                <p>您还没有收藏任何商品</p>
+                <p style="font-size: 14px; color: #909399; margin-top: 8px;">
+                  在商品详情页点击 ❤️ 收藏您感兴趣的商品
+                </p>
+              </template>
               <el-button type="primary" @click="$router.push('/products')">
                 去逛逛商品
               </el-button>
@@ -75,46 +91,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+import { useProductStore } from '@/stores/products'
+import { supabase } from '@/lib/supabase'
 import GlobalNavigation from '@/components/GlobalNavigation.vue'
 import { Delete } from '@element-plus/icons-vue'
 
-const sortBy = ref('time')
+const userStore = useUserStore()
+const productStore = useProductStore()
 
-// 模拟收藏商品数据
-const favoriteProducts = ref([
-  {
-    id: 1,
-    title: 'MacBook Pro 2021',
-    price: '6800',
-    condition: '几乎全新',
-    location: '计算机学院',
-    image: 'https://via.placeholder.com/300x200?text=MacBook',
-    favoriteTime: '2024-01-15'
-  },
-  {
-    id: 2,
-    title: 'AirPods Pro 2代',
-    price: '1200',
-    condition: '几乎全新',
-    location: '电子信息学院',
-    image: 'https://via.placeholder.com/300x200?text=AirPods',
-    favoriteTime: '2024-01-10'
-  },
-  {
-    id: 3,
-    title: 'Java编程思想',
-    price: '35',
-    condition: '明显使用',
-    location: '软件学院',
-    image: 'https://via.placeholder.com/300x200?text=Java书',
-    favoriteTime: '2024-01-08'
+const sortBy = ref('time')
+const isLoading = ref(false)
+
+// 收藏商品列表
+const favoriteProducts = ref<any[]>([])
+
+// 计算属性：排序后的收藏商品
+const sortedFavoriteProducts = computed(() => {
+  const products = [...favoriteProducts.value]
+  
+  switch (sortBy.value) {
+    case 'price-asc':
+      return products.sort((a, b) => a.price - b.price)
+    case 'price-desc':
+      return products.sort((a, b) => b.price - a.price)
+    case 'time':
+    default:
+      return products.sort((a, b) => 
+        new Date(b.favoriteTime).getTime() - new Date(a.favoriteTime).getTime()
+      )
   }
-])
+})
 
 // 从收藏中移除商品
-const removeFromFavorites = async (productId: number) => {
+const removeFromFavorites = async (productId: string) => {
   try {
     await ElMessageBox.confirm(
       '确定要从收藏中移除这个商品吗？',
@@ -126,20 +138,152 @@ const removeFromFavorites = async (productId: number) => {
       }
     )
     
-    favoriteProducts.value = favoriteProducts.value.filter(
-      product => product.id !== productId
-    )
+    isLoading.value = true
+    const result = await userStore.removeFromFavorites(productId)
     
-    ElMessage.success('已从收藏中移除')
+    if (result.success) {
+      // 从本地列表移除
+      favoriteProducts.value = favoriteProducts.value.filter(
+        product => product.id !== productId
+      )
+      ElMessage.success('已从收藏中移除')
+    } else {
+      ElMessage.error(result.message || '移除失败')
+    }
   } catch (error) {
     // 用户取消操作
+    console.log('用户取消移除收藏')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 加载收藏商品数据
+const loadFavoriteProducts = async () => {
+  if (!userStore.user) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  
+  isLoading.value = true
+  try {
+    console.log('开始加载收藏商品数据')
+    
+    // 获取用户收藏的商品ID列表
+    const favoriteProductIds = await userStore.fetchFavorites()
+    console.log('收藏商品ID列表:', favoriteProductIds)
+    
+    if (favoriteProductIds.length === 0) {
+      favoriteProducts.value = []
+      console.log('用户没有收藏任何商品')
+      return
+    }
+    
+    // 获取商品详细信息
+    const { data: productsData, error: productsError } = await supabase
+      .from('products')
+      .select(`
+        *,
+        profiles!inner(
+          username,
+          avatar_url
+        )
+      `)
+      .in('id', favoriteProductIds)
+      .eq('status', 'available')
+      .order('created_at', { ascending: false })
+
+    if (productsError) {
+      console.error('获取商品数据失败:', productsError)
+      ElMessage.error('获取商品数据失败')
+      return
+    }
+
+    if (!productsData || productsData.length === 0) {
+      favoriteProducts.value = []
+      console.log('没有找到收藏的商品数据')
+      return
+    }
+
+    console.log('获取到收藏商品数据，数量:', productsData.length)
+
+    // 获取收藏时间信息
+    const { data: favoritesData, error: favoritesError } = await supabase
+      .from('favorites')
+      .select('product_id, created_at')
+      .eq('user_id', userStore.user.id)
+      .in('product_id', favoriteProductIds)
+      .order('created_at', { ascending: false })
+
+    if (favoritesError) {
+      console.error('获取收藏时间失败:', favoritesError)
+    }
+
+    // 创建收藏时间映射
+    const favoriteTimeMap = new Map()
+    if (favoritesData) {
+      favoritesData.forEach(fav => {
+        favoriteTimeMap.set(fav.product_id, fav.created_at)
+      })
+    }
+
+    // 转换数据格式
+    favoriteProducts.value = productsData.map(item => {
+      const favoriteTime = favoriteTimeMap.get(item.id) || item.created_at
+      
+      return {
+        id: item.id,
+        title: item.title,
+        price: item.price,
+        originalPrice: item.original_price,
+        condition: item.condition,
+        location: item.location,
+        images: item.images || [],
+        image: item.images?.[0] || '/src/assets/default-product.jpg',
+        status: item.status,
+        sellerName: item.profiles?.username || '未知用户',
+        sellerAvatar: item.profiles?.avatar_url,
+        favoriteTime: favoriteTime,
+        createdAt: item.created_at,
+        viewCount: item.view_count || 0,
+        likeCount: item.like_count || 0
+      }
+    })
+    
+    console.log('收藏商品数据转换完成')
+  } catch (error) {
+    console.error('加载收藏商品失败:', error)
+    ElMessage.error('加载收藏商品失败')
+  } finally {
+    isLoading.value = false
   }
 }
 
 // 页面加载
-onMounted(() => {
-  // 可以在这里加载真实的收藏数据
+onMounted(async () => {
+  console.log('收藏页面加载中...')
+  await loadFavoriteProducts()
 })
+
+// 格式化日期
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffTime = Math.abs(now.getTime() - date.getTime())
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) {
+    return '今天'
+  } else if (diffDays === 1) {
+    return '昨天'
+  } else if (diffDays < 7) {
+    return `${diffDays}天前`
+  } else if (diffDays < 30) {
+    return `${Math.floor(diffDays / 7)}周前`
+  } else {
+    return date.toLocaleDateString('zh-CN')
+  }
+}
 </script>
 
 <style scoped>
@@ -183,6 +327,7 @@ onMounted(() => {
   padding: 40px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   margin-bottom: 60px;
+  min-height: 400px;
 }
 
 /* 筛选栏 */
@@ -198,6 +343,58 @@ onMounted(() => {
 .favorites-count {
   font-weight: 600;
   color: #667eea;
+}
+
+/* 加载状态 */
+.loading-state {
+  text-align: center;
+  padding: 60px 0;
+}
+
+/* 商品统计信息 */
+.product-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.view-count, .like-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 价格显示 */
+.product-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.current-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f56c6c;
+}
+
+.original-price {
+  font-size: 14px;
+  color: #909399;
+  text-decoration: line-through;
+}
+
+/* 位置和时间信息 */
+.product-location {
+  font-size: 13px;
+  color: #606266;
+}
+
+.favorite-time {
+  font-size: 12px;
+  color: #909399;
 }
 
 /* 收藏商品网格 */

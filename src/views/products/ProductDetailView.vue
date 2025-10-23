@@ -91,9 +91,16 @@
                 <el-icon><ChatDotRound /></el-icon>
                 联系卖家
               </el-button>
-              <el-button size="large" @click="handleAddToFavorites">
-                <el-icon><Star /></el-icon>
-                收藏
+              <el-button 
+                size="large" 
+                @click="handleAddToFavorites"
+                :type="userStore.isFavorited(product.id) ? 'warning' : 'default'"
+                :loading="userStore.isLoading"
+              >
+                <el-icon>
+                  <Star :class="{ 'is-favorited': userStore.isFavorited(product.id) }" />
+                </el-icon>
+                {{ userStore.isFavorited(product.id) ? '已收藏' : '收藏' }}
               </el-button>
               <el-button size="large" @click="handleShare">
                 <el-icon><Share /></el-icon>
@@ -126,9 +133,12 @@
       </div>
 
       <!-- 商品不存在 -->
-      <div v-else-if="!productStore.isLoading" class="not-found">
+      <div v-else-if="!productStore.isLoading && !product" class="not-found">
         <el-empty description="商品不存在或已被删除" />
-        <el-button type="primary" @click="$router.push('/products')">返回商品列表</el-button>
+        <div class="error-actions">
+          <el-button type="primary" @click="$router.push('/products')">返回商品列表</el-button>
+          <el-button @click="handleRetry">重新加载</el-button>
+        </div>
       </div>
     </main>
   </div>
@@ -139,6 +149,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
+import { ElMessage } from 'element-plus'
 import GlobalNavigation from '@/components/GlobalNavigation.vue'
 import { 
   ShoppingBag, ChatDotRound, Star, Share
@@ -179,28 +190,71 @@ const formatDate = (dateString: string) => {
 }
 
 // 联系卖家
-const handleContactSeller = () => {
+const handleContactSeller = async () => {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录后再联系卖家')
     router.push('/login')
     return
   }
   
-  if (product.value) {
-    // 跳转到消息页面
+  if (!product.value) {
+    ElMessage.error('商品信息不存在')
+    return
+  }
+  
+  try {
+    console.log('联系卖家，商品ID:', product.value.id, '卖家ID:', product.value.sellerId)
+    
+    // 跳转到消息页面，并传递参数
     router.push(`/messages?sellerId=${product.value.sellerId}&productId=${product.value.id}`)
+  } catch (error) {
+    console.error('联系卖家失败:', error)
+    ElMessage.error('操作失败，请重试')
   }
 }
 
 // 添加到收藏
-const handleAddToFavorites = () => {
+const handleAddToFavorites = async () => {
   if (!userStore.isLoggedIn) {
     ElMessage.warning('请先登录后再收藏商品')
     router.push('/login')
     return
   }
   
-  ElMessage.success('已添加到收藏')
+  if (!product.value) {
+    ElMessage.error('商品信息不存在')
+    return
+  }
+  
+  try {
+    console.log('处理收藏操作，商品ID:', product.value.id)
+    
+    // 检查是否已收藏
+    const isCurrentlyFavorited = userStore.isFavorited(product.value.id)
+    console.log('当前收藏状态:', isCurrentlyFavorited)
+    
+    let result
+    if (isCurrentlyFavorited) {
+      // 如果已收藏，则取消收藏
+      result = await userStore.removeFromFavorites(product.value.id)
+      if (result.success) {
+        ElMessage.success('已取消收藏')
+      }
+    } else {
+      // 如果未收藏，则添加收藏
+      result = await userStore.addToFavorites(product.value.id)
+      if (result.success) {
+        ElMessage.success('收藏成功')
+      } else {
+        ElMessage.error(result.message || '收藏失败')
+      }
+    }
+    
+    console.log('收藏操作结果:', result)
+  } catch (error) {
+    console.error('收藏操作失败:', error)
+    ElMessage.error('操作失败，请重试')
+  }
 }
 
 // 分享商品
@@ -222,10 +276,21 @@ const handleShare = async () => {
   }
 }
 
+// 重新加载商品详情
+const handleRetry = async () => {
+  const productId = route.params.id as string
+  if (productId) {
+    await productStore.fetchProductDetail(productId)
+    if (product.value && product.value.images.length > 0) {
+      currentImage.value = product.value.images[0]
+    }
+  }
+}
+
 onMounted(async () => {
   await userStore.initUser()
   
-  const productId = parseInt(route.params.id as string)
+  const productId = route.params.id as string
   if (productId) {
     await productStore.fetchProductDetail(productId)
     if (product.value && product.value.images.length > 0) {
@@ -554,6 +619,25 @@ onMounted(async () => {
 .not-found {
   text-align: center;
   padding: 60px 0;
+}
+
+.error-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* 收藏按钮样式 */
+.is-favorited {
+  color: #e6a23c;
+  animation: favorite-pulse 0.3s ease;
+}
+
+@keyframes favorite-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
 @media (max-width: 768px) {

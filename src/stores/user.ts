@@ -8,6 +8,7 @@ export const useUserStore = defineStore('user', () => {
   // 状态
   const user = ref<User | null>(null)
   const isLoading = ref(false)
+  const favorites = ref<string[]>([]) // 存储收藏的商品ID列表
 
   // 计算属性
   const isLoggedIn = computed(() => {
@@ -29,21 +30,33 @@ export const useUserStore = defineStore('user', () => {
 
       // 获取用户profile信息
       if (data.user) {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profiles, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
-          .single()
 
         if (profileError) throw profileError
 
-        user.value = {
-          id: data.user.id,
-          username: profile.username,
-          email: profile.email,
-          phone: profile.phone || '',
-          avatar: profile.avatar_url || '/src/assets/default-avatar.png',
-          createdAt: profile.created_at
+        if (profiles && profiles.length > 0) {
+          const profile = profiles[0]
+          user.value = {
+            id: data.user.id,
+            username: profile.username,
+            email: profile.email,
+            phone: profile.phone || '',
+            avatar: profile.avatar_url || '/src/assets/default-avatar.png',
+            createdAt: profile.created_at
+          }
+        } else {
+          // 如果没有找到profile，使用认证数据创建基础用户信息
+          user.value = {
+            id: data.user.id,
+            username: data.user.user_metadata?.username || data.user.email?.split('@')[0] || '用户',
+            email: data.user.email || '',
+            phone: data.user.user_metadata?.phone || '',
+            avatar: '/src/assets/default-avatar.png',
+            createdAt: data.user.created_at || new Date().toISOString()
+          }
         }
       }
 
@@ -170,13 +183,13 @@ export const useUserStore = defineStore('user', () => {
       
       if (session) {
         // 获取用户profile信息
-        const { data: profile, error: profileError } = await supabase
+        const { data: profiles, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single()
 
-        if (profile && !profileError) {
+        if (profiles && profiles.length > 0 && !profileError) {
+          const profile = profiles[0]
           user.value = {
             id: session.user.id,
             username: profile.username,
@@ -197,6 +210,9 @@ export const useUserStore = defineStore('user', () => {
           }
         }
         
+        // 加载用户收藏列表
+        await fetchFavorites()
+        
         return true // 返回初始化成功
       }
       
@@ -213,18 +229,154 @@ export const useUserStore = defineStore('user', () => {
       await initUser()
     } else if (event === 'SIGNED_OUT') {
       user.value = null
+      favorites.value = [] // 清空收藏列表
     }
   })
+
+  // 获取用户收藏列表
+  const fetchFavorites = async () => {
+    if (!user.value) return []
+    
+    try {
+      console.log('获取用户收藏列表，用户ID:', user.value.id)
+      
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('product_id')
+        .eq('user_id', user.value.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('获取收藏列表失败:', error)
+        return []
+      }
+
+      console.log('获取收藏列表成功，数量:', data?.length || 0)
+      
+      // 提取商品ID列表
+      const favoriteIds = data?.map(item => item.product_id) || []
+      favorites.value = favoriteIds
+      return favoriteIds
+    } catch (error) {
+      console.error('获取收藏列表失败:', error)
+      return []
+    }
+  }
+
+  // 检查商品是否已收藏
+  const isFavorited = (productId: string) => {
+    return favorites.value.includes(productId)
+  }
+
+  // 添加收藏
+  const addToFavorites = async (productId: string) => {
+    if (!user.value) {
+      ElMessage.warning('请先登录后再收藏商品')
+      return { success: false, message: '用户未登录' }
+    }
+
+    try {
+      console.log('添加收藏，商品ID:', productId)
+      
+      const { error } = await supabase
+        .from('favorites')
+        .insert({
+          user_id: user.value.id,
+          product_id: productId
+        })
+
+      if (error) {
+        if (error.code === '23505') { // 唯一约束冲突
+          console.log('商品已在收藏列表中')
+          return { success: false, message: '商品已在收藏列表中' }
+        }
+        throw error
+      }
+
+      // 添加到本地列表
+      if (!favorites.value.includes(productId)) {
+        favorites.value.push(productId)
+      }
+
+      // 更新商品的收藏数（异步，不阻塞主流程）
+      updateProductLikeCount(productId, 1).catch(err => 
+        console.warn('更新商品收藏数失败:', err)
+      )
+
+      console.log('收藏成功')
+      return { success: true, message: '收藏成功' }
+    } catch (error: any) {
+      console.error('收藏失败:', error)
+      return { success: false, message: error.message || '收藏失败' }
+    }
+  }
+
+  // 移除收藏
+  const removeFromFavorites = async (productId: string) => {
+    if (!user.value) {
+      return { success: false, message: '用户未登录' }
+    }
+
+    try {
+      console.log('移除收藏，商品ID:', productId)
+      
+      const { error } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', user.value.id)
+        .eq('product_id', productId)
+
+      if (error) throw error
+
+      // 从本地列表移除
+      const index = favorites.value.indexOf(productId)
+      if (index > -1) {
+        favorites.value.splice(index, 1)
+      }
+
+      // 更新商品的收藏数（异步，不阻塞主流程）
+      updateProductLikeCount(productId, -1).catch(err => 
+        console.warn('更新商品收藏数失败:', err)
+      )
+
+      console.log('取消收藏成功')
+      return { success: true, message: '已取消收藏' }
+    } catch (error: any) {
+      console.error('取消收藏失败:', error)
+      return { success: false, message: error.message || '取消收藏失败' }
+    }
+  }
+
+  // 更新商品收藏数（辅助函数）
+  const updateProductLikeCount = async (productId: string, delta: number) => {
+    try {
+      const { error } = await supabase.rpc('adjust_like_count', {
+        product_id: productId,
+        delta: delta
+      })
+      
+      if (error) throw error
+      console.log(`商品 ${productId} 收藏数更新: ${delta > 0 ? '+' : ''}${delta}`)
+    } catch (error) {
+      console.error('更新商品收藏数失败:', error)
+      // 不抛出错误，避免影响主流程
+    }
+  }
 
   return {
     user,
     isLoading,
     isLoggedIn,
     userInfo,
+    favorites,
     login,
     register,
     logout,
     updateProfile,
-    initUser
+    initUser,
+    fetchFavorites,
+    isFavorited,
+    addToFavorites,
+    removeFromFavorites
   }
 })
