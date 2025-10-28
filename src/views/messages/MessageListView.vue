@@ -125,21 +125,26 @@
                 </div>
               </div>
 
-              <!-- 消息输入 -->
-              <div class="message-input">
-                <el-input
-                  v-model="newMessage"
-                  type="textarea"
-                  :rows="3"
-                  placeholder="输入消息..."
-                  @keydown.enter.prevent="handleSendMessage"
-                />
-                <div class="input-actions">
-                  <el-button type="primary" @click="handleSendMessage" :disabled="!newMessage.trim()">
-                    发送
-                  </el-button>
-                </div>
-              </div>
+              <div class="input-container">
+        <el-input
+          v-model="newMessage"
+          type="textarea"
+          :rows="2"
+          placeholder="输入消息..."
+          @keydown.enter.prevent="handleSendMessage"
+          class="message-input"
+          :disabled="messageStore.isSending"
+        />
+        <el-button 
+          type="primary" 
+          @click="handleSendMessage"
+          :disabled="!messageStore.canSendMessage"
+          :loading="messageStore.isSending"
+          class="send-btn"
+        >
+          {{ messageStore.isSending ? '发送中...' : '发送' }}
+        </el-button>
+      </div>
             </div>
             
             <!-- 未选择对话 -->

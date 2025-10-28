@@ -12,10 +12,20 @@ export const useMessageStore = defineStore('messages', () => {
   const activeConversation = ref<any>(null)
   const isLoading = ref(false)
   const newMessage = ref('')
+  const isSending = ref(false) // 添加发送状态
+  const messageQueue = ref<any[]>([]) // 消息队列，用于处理发送失败的情况
 
   // 计算属性
   const unreadCount = computed(() => {
     return conversations.value.reduce((count, conv) => count + (conv.unreadCount || 0), 0)
+  })
+
+  const isActiveConversation = computed(() => {
+    return !!activeConversation.value
+  })
+
+  const canSendMessage = computed(() => {
+    return !!activeConversation.value && newMessage.value.trim() && !isSending.value
   })
 
   // 获取对话列表
@@ -262,12 +272,19 @@ export const useMessageStore = defineStore('messages', () => {
     conversation.unreadCount = 0
   }
 
-  // 发送消息
+  // 发送消息（增强版，带发送状态管理）
   const sendMessage = async (conversationId: string, content: string) => {
     const userStore = useUserStore()
     if (!userStore.user || !content.trim()) {
       return { success: false, message: '内容不能为空' }
     }
+
+    // 防止重复发送
+    if (isSending.value) {
+      return { success: false, message: '正在发送中，请稍候' }
+    }
+
+    isSending.value = true
 
     try {
       console.log('发送消息，对话ID:', conversationId)
@@ -280,6 +297,39 @@ export const useMessageStore = defineStore('messages', () => {
 
       if (conversation.otherParty.id === userStore.user.id) {
         return { success: false, message: '不能给自己发送消息' }
+      }
+
+      // 创建本地消息对象（乐观更新）
+      const tempMessageId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const tempMessage = {
+        id: tempMessageId,
+        content: content.trim(),
+        timestamp: new Date().toISOString(),
+        isOwn: true,
+        avatar: userStore.user.avatar || '/src/assets/default-avatar.png',
+        isRead: false,
+        isSending: true, // 标记为发送中
+        isFailed: false // 标记为未失败
+      }
+
+      // 乐观更新：立即显示消息
+      if (activeConversation.value?.id === conversationId) {
+        activeConversation.value.messages.push(tempMessage)
+        activeConversation.value.lastMessage = content
+        activeConversation.value.lastMessageTime = tempMessage.timestamp
+        
+        // 滚动到底部
+        setTimeout(() => scrollToBottom(), 50)
+      }
+
+      // 更新对话列表
+      const convIndex = conversations.value.findIndex(conv => conv.id === conversationId)
+      if (convIndex !== -1) {
+        conversations.value[convIndex].lastMessage = content
+        conversations.value[convIndex].lastMessageTime = tempMessage.timestamp
+        // 将对话移到最前面
+        const updatedConv = conversations.value.splice(convIndex, 1)[0]
+        conversations.value.unshift(updatedConv)
       }
 
       const { data, error } = await supabase
@@ -295,6 +345,14 @@ export const useMessageStore = defineStore('messages', () => {
 
       if (error) {
         console.error('消息插入失败:', error)
+        // 更新本地消息为失败状态
+        if (activeConversation.value?.id === conversationId) {
+          const msgIndex = activeConversation.value.messages.findIndex(msg => msg.id === tempMessageId)
+          if (msgIndex !== -1) {
+            activeConversation.value.messages[msgIndex].isSending = false
+            activeConversation.value.messages[msgIndex].isFailed = true
+          }
+        }
         throw error
       }
 
@@ -307,37 +365,38 @@ export const useMessageStore = defineStore('messages', () => {
       // 更新对话的最后消息时间
       await updateConversationLastMessage(conversationId, content)
 
-      // 更新本地对话数据
-      const newMessage = {
-        id: data.id,
-        content: data.content,
-        timestamp: data.created_at,
-        isOwn: true,
-        avatar: userStore.user.avatar || '/src/assets/default-avatar.png',
-        isRead: false
-      }
-
-      // 更新活动对话的消息列表
+      // 替换临时消息为真实消息
       if (activeConversation.value?.id === conversationId) {
-        activeConversation.value.messages.push(newMessage)
-        activeConversation.value.lastMessage = content
-        activeConversation.value.lastMessageTime = data.created_at
-      }
-
-      // 更新对话列表中的对应项
-      const convIndex = conversations.value.findIndex(conv => conv.id === conversationId)
-      if (convIndex !== -1) {
-        conversations.value[convIndex].lastMessage = content
-        conversations.value[convIndex].lastMessageTime = data.created_at
-        // 将对话移到最前面
-        const updatedConv = conversations.value.splice(convIndex, 1)[0]
-        conversations.value.unshift(updatedConv)
+        const msgIndex = activeConversation.value.messages.findIndex(msg => msg.id === tempMessageId)
+        if (msgIndex !== -1) {
+          activeConversation.value.messages[msgIndex] = {
+            id: data.id,
+            content: data.content,
+            timestamp: data.created_at,
+            isOwn: true,
+            avatar: userStore.user.avatar || '/src/assets/default-avatar.png',
+            isRead: false,
+            isSending: false,
+            isFailed: false
+          }
+        }
       }
 
       return { success: true, message: '发送成功' }
     } catch (error: any) {
       console.error('发送消息失败:', error)
+      
+      // 添加到失败队列，允许重试
+      messageQueue.value.push({
+        conversationId,
+        content: content.trim(),
+        timestamp: new Date().toISOString(),
+        retryCount: 0
+      })
+      
       return { success: false, message: error.message || '发送失败，请稍后重试' }
+    } finally {
+      isSending.value = false
     }
   }
 
@@ -551,11 +610,20 @@ export const useMessageStore = defineStore('messages', () => {
   }
 
   return {
+    // 状态
     conversations,
     activeConversation,
     isLoading,
     newMessage,
+    isSending,
+    messageQueue,
     unreadCount,
+    
+    // 计算属性
+    isActiveConversation,
+    canSendMessage,
+    
+    // 方法
     fetchConversations,
     fetchMessages,
     selectConversation,

@@ -28,6 +28,14 @@
               <el-icon><Goods /></el-icon>
               商品市场
             </el-menu-item>
+            <el-menu-item index="/campus">
+              <el-icon><School /></el-icon>
+              校园生活
+            </el-menu-item>
+            <el-menu-item index="/ai-assistant">
+              <el-icon><Cpu /></el-icon>
+              AI助手
+            </el-menu-item>
             <el-sub-menu index="user">
               <template #title>
                 <el-icon><User /></el-icon>
@@ -36,6 +44,15 @@
               <el-menu-item index="/profile">个人信息</el-menu-item>
               <el-menu-item index="/messages">消息中心</el-menu-item>
               <el-menu-item index="/favorites">我的收藏</el-menu-item>
+              <!-- 管理员入口 - 仅对管理员显示 -->
+              <el-menu-item 
+                v-if="userStore.isAdmin" 
+                index="/admin"
+                class="admin-menu-item"
+              >
+                <el-icon><Setting /></el-icon>
+                管理员后台
+              </el-menu-item>
             </el-sub-menu>
           </el-menu>
         </nav>
@@ -132,7 +149,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { 
   ShoppingBag, House, Goods, Plus, User, Search, 
-  ChatDotRound, SwitchButton 
+  ChatDotRound, SwitchButton, School, Cpu, Setting
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -155,41 +172,58 @@ const showBreadcrumb = computed(() => {
   return route.path !== '/'
 })
 
-// 计算面包屑项
-const breadcrumbItems = computed(() => {
-  const items: Array<{ title: string; path?: string }> = []
-  const path = route.path
-  const meta = route.meta as any
+  // 计算面包屑项
+  const breadcrumbItems = computed(() => {
+    const items: Array<{ title: string; path?: string }> = []
+    const path = route.path
+    const meta = route.meta as any
 
-  if (path.startsWith('/products')) {
-    if (path === '/products') {
-      items.push({ title: '商品市场' })
-    } else if (path === '/products/publish') {
-      items.push({ title: '商品市场', path: '/products' })
-      items.push({ title: '发布商品' })
-    } else if (path.includes('/products/')) {
-      items.push({ title: '商品市场', path: '/products' })
-      items.push({ title: '商品详情' })
+    if (path.startsWith('/products')) {
+      if (path === '/products') {
+        items.push({ title: '商品市场' })
+      } else if (path === '/products/publish') {
+        items.push({ title: '商品市场', path: '/products' })
+        items.push({ title: '发布商品' })
+      } else if (path.includes('/products/')) {
+        items.push({ title: '商品市场', path: '/products' })
+        items.push({ title: '商品详情' })
+      }
+    } else if (path.startsWith('/campus')) {
+      if (path === '/campus') {
+        items.push({ title: '校园生活' })
+      } else if (path === '/campus/posts') {
+        items.push({ title: '校园生活', path: '/campus' })
+        items.push({ title: '校园动态' })
+      } else if (path === '/campus/events') {
+        items.push({ title: '校园生活', path: '/campus' })
+        items.push({ title: '校园活动' })
+      } else if (path === '/campus/lost-found') {
+        items.push({ title: '校园生活', path: '/campus' })
+        items.push({ title: '失物招领' })
+      }
+    } else if (path.startsWith('/ai-assistant')) {
+      items.push({ title: 'AI助手' })
+    } else if (path.startsWith('/analytics')) {
+      items.push({ title: '数据分析' })
+    } else if (path.startsWith('/profile')) {
+      items.push({ title: '个人中心' })
+    } else if (path.startsWith('/messages')) {
+      items.push({ title: '消息中心' })
+    } else if (path.startsWith('/favorites')) {
+      items.push({ title: '个人中心', path: '/profile' })
+      items.push({ title: '我的收藏' })
     }
-  } else if (path.startsWith('/profile')) {
-    items.push({ title: '个人中心' })
-  } else if (path.startsWith('/messages')) {
-    items.push({ title: '消息中心' })
-  } else if (path.startsWith('/favorites')) {
-    items.push({ title: '个人中心', path: '/profile' })
-    items.push({ title: '我的收藏' })
-  }
 
-  // 添加页面标题
-  if (meta?.title && path !== '/') {
-    const lastItem = items[items.length - 1]
-    if (!lastItem || lastItem.title !== meta.title) {
-      items.push({ title: meta.title })
+    // 添加页面标题
+    if (meta?.title && path !== '/') {
+      const lastItem = items[items.length - 1]
+      if (!lastItem || lastItem.title !== meta.title) {
+        items.push({ title: meta.title })
+      }
     }
-  }
 
-  return items
-})
+    return items
+  })
 
 // 菜单选择处理
 const handleMenuSelect = (index: string) => {
@@ -254,32 +288,47 @@ watch(() => route.path, () => {
   height: 64px;
 }
 
-/* Logo区域 */
+/* Logo区域 - 重新设计 */
 .logo-section {
   display: flex;
   align-items: center;
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
 }
 
 .logo-section:hover {
-  transform: scale(1.05);
+  transform: scale(1.08);
 }
 
 .logo-icon {
-  background: linear-gradient(45deg, #409eff, #67c23a);
-  padding: 8px;
-  border-radius: 8px;
-  margin-right: 8px;
+  background: linear-gradient(135deg, #667eea, #764ba2, #ff6b6b);
+  padding: 10px;
+  border-radius: 12px;
+  margin-right: 12px;
   color: white;
-  font-size: 20px;
+  font-size: 24px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: all 0.4s ease;
+}
+
+.logo-section:hover .logo-icon {
+  transform: rotate(15deg);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  color: #333;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 28px; /* 增大导航栏Logo字体 */
+  font-weight: 900;
+  background: linear-gradient(135deg, #667eea, #764ba2, #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap; /* 防止文字换行 */
+  min-width: 180px; /* 确保有足够的最小宽度 */
 }
 
 /* 主导航菜单 */
@@ -300,9 +349,10 @@ watch(() => route.path, () => {
   line-height: 64px;
   border-bottom: 3px solid transparent;
   transition: all 0.3s ease;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 16px; /* 增大导航菜单字体 */
   color: #606266;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .nav-menu .el-menu-item:hover,
@@ -317,6 +367,24 @@ watch(() => route.path, () => {
   background: rgba(64, 158, 255, 0.1);
   border-bottom-color: #409eff;
   color: #409eff;
+}
+
+/* 管理员菜单项特殊样式 */
+.admin-menu-item {
+  background: linear-gradient(45deg, #f56c6c, #e6a23c) !important;
+  color: white !important;
+  border-radius: 8px;
+  margin: 4px 8px;
+}
+
+.admin-menu-item:hover {
+  background: linear-gradient(45deg, #f78989, #e8b86c) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
+}
+
+.admin-menu-item .el-icon {
+  color: white !important;
 }
 
 /* 导航操作区域 */

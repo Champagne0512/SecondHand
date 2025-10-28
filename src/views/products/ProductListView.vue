@@ -6,14 +6,57 @@
     <!-- 现代化主要内容 -->
     <main class="modern-main-content">
       <div class="container">
+        <!-- 现代化搜索栏 -->
+        <section class="modern-search-section">
+          <div class="search-container">
+            <div class="search-input-wrapper">
+              <el-input
+                v-model="searchKeyword"
+                placeholder="搜索商品名称、描述或卖家..."
+                size="large"
+                @keyup.enter="handleSearch"
+                class="modern-search-input"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+                <template #append>
+                  <el-button type="primary" @click="handleSearch" class="search-btn">
+                    搜索
+                  </el-button>
+                </template>
+              </el-input>
+            </div>
+            
+            <div class="quick-filters">
+              <el-button 
+                v-for="filter in quickFilters" 
+                :key="filter.label"
+                :type="activeQuickFilter === filter.label ? 'primary' : 'default'"
+                size="small"
+                @click="handleQuickFilter(filter)"
+                class="quick-filter-btn"
+              >
+                {{ filter.label }}
+              </el-button>
+            </div>
+          </div>
+        </section>
+
         <!-- 现代化筛选栏 -->
         <section class="modern-filter-section">
           <div class="filter-header">
             <h3 class="filter-title">商品筛选</h3>
-            <el-button type="info" size="small" @click="handleClearFilter" class="clear-btn">
-              <el-icon><Refresh /></el-icon>
-              清除筛选
-            </el-button>
+            <div class="filter-actions">
+              <el-button type="info" size="small" @click="handleClearFilter" class="clear-btn">
+                <el-icon><Refresh /></el-icon>
+                清除筛选
+              </el-button>
+              <el-button type="primary" size="small" @click="toggleAdvancedFilter" class="advanced-btn">
+                <el-icon><Filter /></el-icon>
+                {{ showAdvancedFilter ? '收起' : '高级筛选' }}
+              </el-button>
+            </div>
           </div>
           
           <div class="filter-grid">
@@ -52,7 +95,54 @@
                 <el-option label="价格从低到高" value="price_asc" />
                 <el-option label="价格从高到低" value="price_desc" />
                 <el-option label="人气最高" value="popular" />
+                <el-option label="距离最近" value="distance" />
               </el-select>
+            </div>
+          </div>
+
+          <!-- 高级筛选 -->
+          <div v-if="showAdvancedFilter" class="advanced-filter-section">
+            <div class="advanced-filter-grid">
+              <div class="filter-group">
+                <label class="filter-label">交易方式</label>
+                <el-select v-model="filter.tradeType" placeholder="全部方式" @change="handleFilterChange" class="modern-select">
+                  <el-option label="全部方式" value="" />
+                  <el-option label="面交" value="face_to_face" />
+                  <el-option label="快递" value="express" />
+                  <el-option label="自提" value="pickup" />
+                </el-select>
+              </div>
+              
+              <div class="filter-group">
+                <label class="filter-label">商品状态</label>
+                <el-select v-model="filter.status" placeholder="全部状态" @change="handleFilterChange" class="modern-select">
+                  <el-option label="全部状态" value="" />
+                  <el-option label="可交易" value="available" />
+                  <el-option label="已预订" value="reserved" />
+                  <el-option label="已售出" value="sold" />
+                </el-select>
+              </div>
+              
+              <div class="filter-group">
+                <label class="filter-label">发布时间</label>
+                <el-select v-model="filter.timeRange" placeholder="全部时间" @change="handleFilterChange" class="modern-select">
+                  <el-option label="全部时间" value="" />
+                  <el-option label="今天" value="today" />
+                  <el-option label="最近3天" value="3days" />
+                  <el-option label="最近7天" value="7days" />
+                  <el-option label="最近30天" value="30days" />
+                </el-select>
+              </div>
+              
+              <div class="filter-group">
+                <label class="filter-label">卖家信誉</label>
+                <el-select v-model="filter.sellerRating" placeholder="全部信誉" @change="handleFilterChange" class="modern-select">
+                  <el-option label="全部信誉" value="" />
+                  <el-option label="高信誉" value="high" />
+                  <el-option label="中等信誉" value="medium" />
+                  <el-option label="新卖家" value="new" />
+                </el-select>
+              </div>
             </div>
           </div>
         </section>
@@ -137,21 +227,35 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
 import GlobalNavigation from '@/components/GlobalNavigation.vue'
-import { ShoppingBag, Search, Plus, Refresh } from '@element-plus/icons-vue'
+import { ShoppingBag, Search, Plus, Refresh, Filter } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const productStore = useProductStore()
 
 const searchKeyword = ref('')
+const showAdvancedFilter = ref(false)
+const activeQuickFilter = ref('')
 
 const filter = reactive({
   category: '',
   minPrice: undefined,
   maxPrice: undefined,
   condition: '',
-  sortBy: 'date_desc'
+  sortBy: 'date_desc',
+  tradeType: '',
+  status: '',
+  timeRange: '',
+  sellerRating: ''
 })
+
+const quickFilters = [
+  { label: '热门商品', sortBy: 'popular' },
+  { label: '最新发布', sortBy: 'date_desc' },
+  { label: '价格最低', sortBy: 'price_asc' },
+  { label: '高性价比', minPrice: 0, maxPrice: 100 },
+  { label: '全新商品', condition: '全新' }
+]
 
 const categories = [
   { id: 'electronics', name: '电子产品' },
@@ -181,9 +285,38 @@ const handleClearFilter = () => {
     minPrice: undefined,
     maxPrice: undefined,
     condition: '',
-    sortBy: 'date_desc'
+    sortBy: 'date_desc',
+    tradeType: '',
+    status: '',
+    timeRange: '',
+    sellerRating: ''
   })
+  activeQuickFilter.value = ''
+  showAdvancedFilter.value = false
   productStore.clearFilter()
+}
+
+const handleQuickFilter = (quickFilter: any) => {
+  activeQuickFilter.value = quickFilter.label
+  
+  // 应用快速筛选条件
+  Object.assign(filter, {
+    category: '',
+    minPrice: quickFilter.minPrice || undefined,
+    maxPrice: quickFilter.maxPrice || undefined,
+    condition: quickFilter.condition || '',
+    sortBy: quickFilter.sortBy || 'date_desc',
+    tradeType: '',
+    status: '',
+    timeRange: '',
+    sellerRating: ''
+  })
+  
+  productStore.updateFilter({ ...filter })
+}
+
+const toggleAdvancedFilter = () => {
+  showAdvancedFilter.value = !showAdvancedFilter.value
 }
 
 const getStatusText = (status: string) => {
@@ -209,8 +342,23 @@ onMounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 25%, #f8fafc 50%, #f1f5f9 75%, #e2e8f0 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  position: relative;
+}
+
+.modern-product-list-view::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: 0;
+  opacity: 0.05;
 }
 
 .container {
@@ -223,16 +371,98 @@ onMounted(() => {
 .modern-main-content {
   flex: 1;
   padding: 40px 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* 现代化搜索栏 */
+.modern-search-section {
+  margin-bottom: 32px;
+}
+
+.search-container {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+}
+
+.search-input-wrapper {
+  margin-bottom: 20px;
+}
+
+.modern-search-input {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.modern-search-input:hover {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.search-btn {
+  border-radius: 0 12px 12px 0 !important;
+  height: 40px;
+  font-weight: 600;
+}
+
+.quick-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quick-filter-btn {
+  border-radius: 20px !important;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.quick-filter-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* 现代化筛选栏 */
 .modern-filter-section {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  margin-bottom: 40px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
+  border-radius: 24px;
+  padding: 40px;
+  margin-bottom: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    0 16px 50px rgba(0, 0, 0, 0.1),
+    0 8px 25px rgba(102, 126, 234, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(15px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+}
+
+.modern-filter-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #667eea, #764ba2, #ff6b6b, #f093fb);
+  border-radius: 24px 24px 0 0;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
 }
 
 .filter-header {
@@ -328,24 +558,43 @@ onMounted(() => {
 
 .modern-products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 28px;
 }
 
 .modern-product-card {
-  background: white;
-  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   cursor: pointer;
-  border: 1px solid #f7fafc;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+
+.modern-product-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2, #ff6b6b);
+  border-radius: 20px 20px 0 0;
+  z-index: 2;
 }
 
 .modern-product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  border-color: #e2e8f0;
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 16px 50px rgba(0, 0, 0, 0.12),
+    0 8px 25px rgba(102, 126, 234, 0.2),
+    0 0 20px rgba(102, 126, 234, 0.1);
+  border-color: rgba(102, 126, 234, 0.3);
 }
 
 .product-image-container {
@@ -369,6 +618,7 @@ onMounted(() => {
 
 .modern-product-card:hover .product-image img {
   transform: scale(1.05);
+  filter: brightness(1.02);
 }
 
 .image-overlay {

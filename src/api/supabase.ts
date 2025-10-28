@@ -18,20 +18,9 @@ export const supabaseUserApi = {
 
     if (authError) throw authError
 
-    if (authData.user) {
-      // 创建用户profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          username: data.username,
-          email: data.email,
-          phone: data.phone
-        })
-
-      if (profileError) throw profileError
-    }
-
+    // 注意：我们不再手动创建profile，让数据库触发器处理
+    // 这样可以避免RLS权限问题
+    
     return authData
   },
 

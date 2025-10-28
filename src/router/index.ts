@@ -59,6 +59,68 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '我的收藏', requiresAuth: true }
   },
   {
+    path: '/campus',
+    name: 'Campus',
+    component: () => import('@/views/campus/CampusView.vue'),
+    meta: { title: '校园生活 - 校园二手交易平台' }
+  },
+  {
+    path: '/campus/posts',
+    name: 'CampusPosts',
+    component: () => import('@/views/campus/CampusPostsView.vue'),
+    meta: { title: '校园动态 - 校园二手交易平台' }
+  },
+  {
+    path: '/campus/events',
+    name: 'CampusEvents',
+    component: () => import('@/views/campus/CampusEventsView.vue'),
+    meta: { title: '校园活动 - 校园二手交易平台' }
+  },
+  {
+    path: '/campus/lost-found',
+    name: 'LostFound',
+    component: () => import('@/views/campus/LostFoundView.vue'),
+    meta: { title: '失物招领 - 校园二手交易平台' }
+  },
+  {
+    path: '/analytics',
+    name: 'Analytics',
+    component: () => import('@/views/analytics/AnalyticsView.vue'),
+    meta: { title: '数据分析 - 校园二手交易平台' }
+  },
+  {
+    path: '/ai-assistant',
+    name: 'AIAssistant',
+    component: () => import('@/views/ai/AIAssistantSimpleView.vue'),
+    meta: { title: 'DeepSeek AI智能助手 - 校园二手交易平台' }
+  },
+  {
+    path: '/admin/login',
+    name: 'AdminLogin',
+    component: () => import('@/views/admin/AdminLogin.vue'),
+    meta: { 
+      title: '管理员登录 - 校园二手交易平台'
+    }
+  },
+  {
+    path: '/admin/test',
+    name: 'AdminTest',
+    component: () => import('@/views/admin/AdminTest.vue'),
+    meta: { 
+      title: '管理员权限测试 - 校园二手交易平台'
+    }
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: () => import('@/views/admin/AdminDashboard.vue'),
+    meta: { 
+      title: '管理员后台 - 校园二手交易平台',
+      requiresAuth: true,
+      requiresAdmin: true
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/NotFoundView.vue'),
@@ -86,12 +148,49 @@ router.beforeEach(async (to, from, next) => {
       
       if (!session) {
         // 没有会话，跳转到登录页
+        console.log('路由守卫：用户未登录，跳转到登录页')
         next('/login')
         return
       }
       
-      // 用户已有会话，允许访问 - 用户状态初始化由App.vue处理
-      // 避免在这里使用useUserStore防止循环依赖
+      // 用户已有会话，允许访问
+      console.log('路由守卫：用户已登录，允许访问', to.path)
+      
+      // 检查是否需要管理员权限
+      if (to.meta.requiresAdmin) {
+        try {
+          // 导入管理员API
+          const { AdminAPI } = await import('@/api/admin')
+          const hasAdminPermission = await AdminAPI.checkAdminPermission()
+          
+          if (!hasAdminPermission) {
+            // 没有管理员权限，跳转到首页并显示提示
+            console.log('路由守卫：用户没有管理员权限')
+            next({
+              path: '/',
+              query: { 
+                redirect: to.fullPath,
+                message: '您没有访问管理员后台的权限'
+              }
+            })
+            return
+          }
+          
+          console.log('路由守卫：用户有管理员权限，允许访问管理员后台')
+          
+        } catch (error) {
+          console.error('验证管理员权限失败:', error)
+          next({
+            path: '/',
+            query: { 
+              redirect: to.fullPath,
+              message: '权限验证失败'
+            }
+          })
+          return
+        }
+      }
+      
     } catch (error) {
       console.error('验证登录状态失败:', error)
       // 验证失败，也跳转到登录页

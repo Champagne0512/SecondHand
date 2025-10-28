@@ -144,7 +144,8 @@ const handleRegister = async () => {
     
     if (result.success) {
       ElMessage.success(result.message)
-      router.push('/')
+      // 注册成功后跳转到个人中心，让用户立即体验登录后的功能
+      router.push('/profile')
     } else {
       ElMessage.error(result.message)
     }
