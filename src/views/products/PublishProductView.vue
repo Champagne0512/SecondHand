@@ -16,7 +16,7 @@
               class="template-card"
               @click="applyTemplate(template)"
             >
-              <div class="template-icon">{{ template.icon }}</div>
+              <div class="template-icon"><el-icon><component :is="template.icon" /></el-icon></div>
               <div class="template-name">{{ template.name }}</div>
               <div class="template-desc">一键应用常用设置</div>
             </div>
@@ -192,7 +192,7 @@ import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
-import { ShoppingBag, Plus, Delete, ZoomIn } from '@element-plus/icons-vue'
+import { ShoppingBag, Plus, Delete, ZoomIn, MobilePhone, Notebook, TShirt, Basketball } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadProps, UploadUserFile } from 'element-plus'
 
@@ -232,28 +232,28 @@ const categories = ref([
 const quickTemplates = [
   {
     name: '电子产品',
-    icon: '📱',
+    icon: 'MobilePhone',
     category: 'electronics',
     condition: '轻微使用',
     description: '功能完好，无维修记录，配件齐全。'
   },
   {
     name: '教材书籍',
-    icon: '📚',
+    icon: 'Notebook',
     category: 'books',
     condition: '轻微使用',
     description: '保存完好，无严重涂写，适合学习使用。'
   },
   {
     name: '服装鞋帽',
-    icon: '👕',
+    icon: 'TShirt',
     category: 'clothing',
     condition: '明显使用',
     description: '干净整洁，可正常使用，有正常使用痕迹。'
   },
   {
     name: '运动器材',
-    icon: '⚽',
+    icon: 'Basketball',
     category: 'sports',
     condition: '明显使用',
     description: '功能正常，适合运动使用，有使用痕迹。'

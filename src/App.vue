@@ -1,15 +1,21 @@
 <template>
   <div id="app">
-    <router-view />
-    <FloatingAIAssistant />
+    <LoadingScreen v-if="showLoading" />
+    <div v-show="!showLoading">
+      <router-view />
+      <FloatingAIAssistant />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRouter, useRoute } from 'vue-router'
 import FloatingAIAssistant from '@/components/FloatingAIAssistant.vue'
+import LoadingScreen from '@/components/LoadingScreen.vue'
+
+const showLoading = ref(true)
 
 // 应用根组件
 const userStore = useUserStore()
@@ -21,6 +27,11 @@ onMounted(async () => {
   console.log('App.vue: 初始化用户状态...')
   const initSuccess = await userStore.initUser()
   console.log('App.vue: 用户状态初始化结果:', initSuccess)
+  
+  // 延迟隐藏加载屏幕，确保加载动画完整播放
+  setTimeout(() => {
+    showLoading.value = false
+  }, 2000)
   
   // 如果当前页面需要认证且用户未登录，跳转到登录页
   if (route.meta.requiresAuth && !userStore.isLoggedIn) {

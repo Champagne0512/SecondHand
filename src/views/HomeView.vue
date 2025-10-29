@@ -15,15 +15,20 @@
                 <p class="banner-subtitle">让闲置物品找到新主人，开启绿色循环经济</p>
                 <div class="banner-actions">
                   <el-button type="primary" size="large" @click="$router.push('/products')">
-                    🔍 浏览商品
+                    <el-icon><Search /></el-icon> 浏览商品
                   </el-button>
                   <el-button v-if="!userStore.isLoggedIn" size="large" @click="$router.push('/login')">
-                    🚀 立即登录
+                    <el-icon><User /></el-icon> 立即登录
                   </el-button>
                 </div>
               </div>
               <div class="banner-image">
-                <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&auto=format" alt="校园二手交易平台" />
+                <img 
+                  src="./0001.png" 
+                  alt="校园二手交易平台" 
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>
@@ -42,22 +47,22 @@
           <div class="feature-section">
             <div class="feature-grid">
               <div class="feature-item">
-                <div class="feature-icon">🛒</div>
+                <div class="feature-icon"><el-icon><Goods /></el-icon></div>
                 <h3 class="feature-title">海量商品</h3>
                 <p class="feature-desc">覆盖校园各类二手物品，满足不同需求</p>
               </div>
               <div class="feature-item">
-                <div class="feature-icon">🔒</div>
+                <div class="feature-icon"><el-icon><Lock /></el-icon></div>
                 <h3 class="feature-title">安全保障</h3>
                 <p class="feature-desc">实名认证交易，确保交易安全可靠</p>
               </div>
               <div class="feature-item">
-                <div class="feature-icon">⚡</div>
+                <div class="feature-icon"><el-icon><Lightning /></el-icon></div>
                 <h3 class="feature-title">快速交易</h3>
                 <p class="feature-desc">简单发布流程，快速完成交易</p>
               </div>
               <div class="feature-item">
-                <div class="feature-icon">🤖</div>
+                <div class="feature-icon"><el-icon><ChatDotRound /></el-icon></div>
                 <h3 class="feature-title">AI助手</h3>
                 <p class="feature-desc">智能推荐，帮你找到心仪商品</p>
               </div>
@@ -165,7 +170,7 @@
                     v-for="notice in notifications" 
                     :key="notice.id"
                   >
-                    <div class="notification-icon">📢</div>
+                    <div class="notification-icon"><el-icon><Bell /></el-icon></div>
                     <div class="notification-content">
                       <h4>{{ notice.title }}</h4>
                       <p>{{ notice.content }}</p>
@@ -238,7 +243,7 @@ import GlobalNavigation from '@/components/GlobalNavigation.vue'
 import { 
   ShoppingBag, Search, Goods, Plus, User, 
   ChatDotRound, Star, ArrowRight, Collection, 
-  Document, Setting, Message, Bell
+  Document, Setting, Message, Bell, Lock, Lightning
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -648,10 +653,7 @@ onMounted(async () => {
   margin-bottom: 30px;
   line-height: 1.1;
   color: #ffffff; /* 改为纯白色 */
-  text-shadow: 
-    0 4px 8px rgba(0, 0, 0, 0.4),
-    0 8px 30px rgba(0, 0, 0, 0.3),
-    0 12px 40px rgba(0, 0, 0, 0.2);
+  text-shadow: none;
   letter-spacing: -0.03em;
   position: relative;
   transform-style: preserve-3d;
@@ -659,23 +661,16 @@ onMounted(async () => {
   text-align: center;
   max-width: 100%;
   animation: 
-    slideInLeft 1s ease-out 0.3s both,
-    textGlow 2s ease-in-out infinite 0.5s;
+    slideInLeft 1s ease-out 0.3s both;
+  will-change: transform, opacity;
 }
 
 @keyframes textGlow {
   0%, 100% { 
-    text-shadow: 
-      0 2px 4px rgba(0, 0, 0, 0.3),
-      0 4px 20px rgba(0, 0, 0, 0.2),
-      0 8px 30px rgba(0, 0, 0, 0.15);
+    text-shadow: none;
   }
   50% { 
-    text-shadow: 
-      0 2px 8px rgba(0, 0, 0, 0.4),
-      0 6px 30px rgba(0, 0, 0, 0.25),
-      0 12px 40px rgba(0, 0, 0, 0.2),
-      0 0 20px rgba(255, 255, 255, 0.3);
+    text-shadow: none;
   }
 }
 
@@ -685,9 +680,7 @@ onMounted(async () => {
   opacity: 0.95;
   color: #ffffff; /* 改为纯白色 */
   animation: slideInLeft 1s ease-out 0.5s both;
-  text-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    0 6px 20px rgba(0, 0, 0, 0.4);
+  text-shadow: none;
   line-height: 1.7;
   font-weight: 500;
   letter-spacing: 0.03em;
@@ -791,28 +784,19 @@ onMounted(async () => {
 }
 
 .banner-image img {
-  max-width: 100%;
+  max-width: 60%;
   height: auto;
   border-radius: 20px;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.3),
-    0 0 30px rgba(255, 255, 255, 0.2);
-  animation: 
-    slideInRight 1s ease-out 0.9s both, 
-    float 6s ease-in-out infinite 2s,
-    pulse 3s ease-in-out infinite 3s;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: none;
+  transition: all 0.3s ease-in-out;
   position: relative;
   transform-style: preserve-3d;
 }
 
 .banner-image img:hover {
-  transform: scale(1.08) rotate(3deg) rotateX(5deg) rotateY(5deg);
-  box-shadow: 
-    0 25px 80px rgba(0, 0, 0, 0.4),
-    0 0 40px rgba(255, 255, 255, 0.3);
-  animation: glow 2s ease-in-out infinite;
-  filter: brightness(1.02);
+  transform: rotate(2deg);
+  box-shadow: none;
+  filter: brightness(1.05);
 }
 
 .carousel-indicators {

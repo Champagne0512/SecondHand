@@ -276,10 +276,6 @@ const sendMessage = async () => {
     console.error('AI助手回复失败:', error)
     ElMessage.error('AI回复失败：' + error.message)
     addMessage('抱歉，我遇到了一些问题，请稍后重试。', 'ai')
-  } catch (error: any) {
-    console.error('AI助手回复失败:', error)
-    ElMessage.error('AI回复失败：' + error.message)
-    addMessage('抱歉，我遇到了一些问题，请稍后重试。', 'ai')
   } finally {
     isLoading.value = false
   }

@@ -279,13 +279,14 @@ watch(() => route.path, () => {
 }
 
 .nav-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 64px;
+  gap: 40px;
 }
 
 /* Logo区域 - 重新设计 */
@@ -336,6 +337,7 @@ watch(() => route.path, () => {
   flex: 1;
   display: flex;
   justify-content: center;
+  min-width: 400px;
 }
 
 .nav-menu {
@@ -391,11 +393,13 @@ watch(() => route.path, () => {
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
+  min-width: 300px;
+  justify-content: flex-end;
 }
 
 .search-box {
-  width: 200px;
+  width: 240px;
 }
 
 .nav-search {

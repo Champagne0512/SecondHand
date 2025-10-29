@@ -16,7 +16,7 @@
       <el-row :gutter="20">
         <el-col :xs="24" :sm="12" :md="8" :lg="6">
           <div class="nav-card campus-posts" @click="$router.push('/campus/posts')">
-            <div class="nav-icon">💬</div>
+            <div class="nav-icon"><el-icon><ChatLineRound /></el-icon></div>
             <h3>校园动态</h3>
             <p>分享生活点滴，了解校园新鲜事</p>
             <div class="nav-stats">{{ campusStore.campusPosts.length }} 条动态</div>
@@ -25,7 +25,7 @@
         
         <el-col :xs="24" :sm="12" :md="8" :lg="6">
           <div class="nav-card campus-events" @click="$router.push('/campus/events')">
-            <div class="nav-icon">🎉</div>
+            <div class="nav-icon"><el-icon><Promotion /></el-icon></div>
             <h3>校园活动</h3>
             <p>参与精彩活动，丰富校园生活</p>
             <div class="nav-stats">{{ campusStore.campusEvents.length }} 个活动</div>
@@ -34,7 +34,7 @@
         
         <el-col :xs="24" :sm="12" :md="8" :lg="6">
           <div class="nav-card lost-found" @click="$router.push('/campus/lost-found')">
-            <div class="nav-icon">🔍</div>
+            <div class="nav-icon"><el-icon><Search /></el-icon></div>
             <h3>失物招领</h3>
             <p>丢失物品寻找，捡到物品归还</p>
             <div class="nav-stats">{{ campusStore.lostFoundItems.length }} 条信息</div>
@@ -43,7 +43,7 @@
         
         <el-col :xs="24" :sm="12" :md="8" :lg="6">
           <div class="nav-card analytics" @click="$router.push('/analytics')">
-            <div class="nav-icon">📊</div>
+            <div class="nav-icon"><el-icon><TrendCharts /></el-icon></div>
             <h3>数据分析</h3>
             <p>价格趋势分析，智能购买建议</p>
             <div class="nav-stats">智能分析</div>
@@ -55,7 +55,7 @@
     <!-- 最新动态预览 -->
     <div class="section-preview">
       <div class="section-header">
-        <h2>🔥 最新校园动态</h2>
+        <h2><el-icon><ChatLineRound /></el-icon> 最新校园动态</h2>
         <el-link type="primary" @click="$router.push('/campus/posts')">查看更多</el-link>
       </div>
       
@@ -114,7 +114,7 @@
     <!-- 即将开始的活动 -->
     <div class="section-preview">
       <div class="section-header">
-        <h2>📅 即将开始的活动</h2>
+        <h2><el-icon><Promotion /></el-icon> 即将开始的活动</h2>
         <el-link type="primary" @click="$router.push('/campus/events')">查看更多</el-link>
       </div>
       
@@ -159,7 +159,7 @@
     <!-- 失物招领 -->
     <div class="section-preview">
       <div class="section-header">
-        <h2>🔍 失物招领</h2>
+        <h2><el-icon><Search /></el-icon> 失物招领</h2>
         <el-link type="primary" @click="$router.push('/campus/lost-found')">查看更多</el-link>
       </div>
       
@@ -206,7 +206,7 @@
     <!-- AI助手入口 -->
     <div class="ai-assistant-section">
       <div class="ai-header">
-        <h2>🤖 AI智能助手</h2>
+        <h2><el-icon><ChatDotRound /></el-icon> AI智能助手</h2>
         <p>让AI帮助你更好地使用平台</p>
       </div>
       
@@ -214,7 +214,7 @@
         <el-row :gutter="20">
           <el-col :xs="24" :sm="12" :md="8">
             <div class="ai-feature-card" @click="$router.push('/ai-assistant')">
-              <div class="ai-icon">✍️</div>
+              <div class="ai-icon"><el-icon><Edit /></el-icon></div>
               <h4>智能文案</h4>
               <p>AI帮你写出吸引人的商品描述</p>
             </div>
@@ -222,7 +222,7 @@
           
           <el-col :xs="24" :sm="12" :md="8">
             <div class="ai-feature-card" @click="$router.push('/analytics')">
-              <div class="ai-icon">💰</div>
+              <div class="ai-icon"><el-icon><Money /></el-icon></div>
               <h4>价格分析</h4>
               <p>智能分析商品价格趋势</p>
             </div>
@@ -230,7 +230,7 @@
           
           <el-col :xs="24" :sm="12" :md="8">
             <div class="ai-feature-card" @click="$router.push('/ai-assistant')">
-              <div class="ai-icon">🎯</div>
+              <div class="ai-icon"><el-icon><Target /></el-icon></div>
               <h4>智能推荐</h4>
               <p>个性化商品推荐</p>
             </div>
@@ -246,6 +246,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useCampusStore } from '@/stores/campus'
 import { ElMessage } from 'element-plus'
 import GlobalNavigation from '@/components/GlobalNavigation.vue'
+import { ChatLineRound, Promotion, Search, TrendCharts, Edit, Money, Target } from '@element-plus/icons-vue'
 
 const campusStore = useCampusStore()
 
@@ -488,7 +489,7 @@ const previewImage = (imageUrl: string) => {
     gradientShift 4s ease-in-out infinite, 
     slideInLeft 1s ease-out 0.2s both,
     float 6s ease-in-out infinite 2s;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  text-shadow: none;
   letter-spacing: -0.03em;
   position: relative;
 }
@@ -502,7 +503,7 @@ const previewImage = (imageUrl: string) => {
   font-size: 1.5rem;
   opacity: 0.9;
   animation: slideInLeft 1s ease-out 0.4s both;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  text-shadow: none;
   line-height: 1.6;
   font-weight: 300;
   letter-spacing: 0.03em;
@@ -600,6 +601,11 @@ const previewImage = (imageUrl: string) => {
   margin-bottom: 20px;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
   transition: transform 0.3s ease;
+}
+
+.nav-icon .el-icon {
+  font-size: 3.5rem;
+  color: #409eff;
 }
 
 .nav-card:hover .nav-icon {
@@ -711,6 +717,14 @@ const previewImage = (imageUrl: string) => {
   animation: gradientShift 3s ease-in-out infinite, slideInLeft 0.8s ease-out 0.6s both;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-header h2 .el-icon {
+  font-size: 2.2rem;
+  color: #409eff;
 }
 
 .loading-container {
@@ -1100,6 +1114,11 @@ const previewImage = (imageUrl: string) => {
   margin-bottom: 20px;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
   transition: transform 0.3s ease;
+}
+
+.ai-icon .el-icon {
+  font-size: 3.5rem;
+  color: #ffffff;
 }
 
 .ai-feature-card:hover .ai-icon {
