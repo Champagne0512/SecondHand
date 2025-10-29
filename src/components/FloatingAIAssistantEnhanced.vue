@@ -121,7 +121,6 @@
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAIAssistantEnhancedStore } from '@/stores/ai-assistant-enhanced'
-import { ElMessage } from 'element-plus'
 
 const aiStore = useAIAssistantEnhancedStore()
 
@@ -250,38 +249,90 @@ const sendMessage = async () => {
   
   isLoading.value = true
   try {
-    // 智能意图识别
-    const intent = await recognizeIntent(message)
-    let response = ''
+    console.log('🚀 调用n8n网站助手工作流:', message)
     
-    switch (intent.type) {
-      case 'price_question':
-        response = await handlePriceQuestion(intent.data)
-        break
-      case 'description_request':
-        response = await handleDescriptionRequest(intent.data)
-        break
-      case 'safety_concern':
-        response = await handleSafetyConcern(intent.data)
-        break
-      case 'search_request':
-        response = await handleSearchRequest(intent.data)
-        break
-      default:
-        response = await aiStore.sendMessage(message)
+    // 使用修复后的工作流URL
+    const n8nWebhookUrl = 'https://cchencchen0512.app.n8n.cloud/webhook/02baeca7-10b5-4800-a9e4-7a85c857c10e/website-assistant'
+    console.log('📡 工作流URL:', n8nWebhookUrl)
+    
+    // 构建请求数据 - 严格按照n8n工作流期望的格式
+    const requestBody = {
+      message: message,
+      userId: 'website-user-' + Date.now(),
+      sessionId: 'session-' + Date.now()
+    }
+    console.log('📤 请求数据:', requestBody)
+    
+    // 设置请求头
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+    console.log('📤 请求头:', headers)
+    
+    const response = await fetch(n8nWebhookUrl, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody)
+    })
+
+    console.log('📥 响应状态:', response.status, response.statusText)
+    console.log('📥 响应头:', Object.fromEntries(response.headers.entries()))
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ 响应错误内容:', errorText)
+      throw new Error(`n8n工作流调用失败: ${response.status} ${response.statusText}\n${errorText}`)
+    }
+
+    // 检查响应体是否为空
+    const responseText = await response.text()
+    console.log('📥 原始响应文本:', responseText)
+    
+    if (!responseText || responseText.trim() === '') {
+      console.error('❌ n8n工作流返回空响应体')
+      throw new Error('n8n工作流返回空响应，请检查工作流配置')
+    }
+
+    // 尝试解析JSON
+    let data
+    try {
+      data = JSON.parse(responseText)
+      console.log('📥 解析后的JSON数据:', data)
+    } catch (parseError) {
+      console.error('❌ JSON解析失败:', parseError)
+      console.error('❌ 原始响应内容:', responseText)
+      throw new Error(`JSON解析失败: ${parseError.message} - 响应内容: ${responseText.substring(0, 200)}`)
     }
     
-    addMessage(response.content, 'ai')
+    if (data.success && data.reply) {
+      // ✅ 收到真实的AI回复！
+      console.log('✅ 收到AI回复:', data.reply)
+      addMessage(data.reply, 'ai')
+    } else {
+      // ❌ 没有收到有效回复
+      console.error('❌ 未收到有效AI回复:', data)
+      throw new Error(`AI回复格式错误: ${JSON.stringify(data)}`)
+    }
+    
   } catch (error: any) {
-    console.error('AI助手回复失败:', error)
+    console.error('❌ AI回复失败:', error)
+    console.error('❌ 错误详情:', error.message)
+    console.error('❌ 错误堆栈:', error.stack)
     ElMessage.error('AI回复失败：' + error.message)
-    addMessage('抱歉，我遇到了一些问题，请稍后重试。', 'ai')
-  } catch (error: any) {
-    console.error('AI助手回复失败:', error)
-    ElMessage.error('AI回复失败：' + error.message)
-    addMessage('抱歉，我遇到了一些问题，请稍后重试。', 'ai')
+    
+    // 显示具体的错误信息给用户
+    const errorMessage = `🚨 AI助手暂时无法连接\n\n错误详情：${error.message}\n\n正在使用备用回复...`
+    addMessage(errorMessage, 'ai')
+    
+    // 使用备用回复
+    const backupResponse = getBackupResponse(message)
+    setTimeout(() => {
+      addMessage(backupResponse, 'ai')
+    }, 1000)
   } finally {
     isLoading.value = false
+    isTyping.value = false
   }
 }
 

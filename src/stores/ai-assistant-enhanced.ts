@@ -7,11 +7,12 @@ export const useAIAssistantEnhancedStore = defineStore('aiAssistantEnhanced', ()
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   
-  // 内置DeepSeek API配置
+  // AI服务配置 - 支持DeepSeek API和n8n工作流
   const apiKey = ref('sk-98e0a077fdbe422585855c3b10f03986')
   const apiEndpoint = ref('https://api.deepseek.com/v1/chat/completions')
+  const n8nWebhookUrl = ref('https://cchencchen0512.app.n8n.cloud/webhook/02baeca7-10b5-4800-a9e4-7a85c857c10e/chat')
   const isConfigured = ref(true) // 内置模式，始终已配置
-  const provider = ref('deepseek')
+  const provider = ref('n8n-workflow') // 默认使用n8n工作流
 
   // 聊天记录
   const chatHistory = ref<Array<{
@@ -133,50 +134,133 @@ ${JSON.stringify(transactionInfo, null, 2)}
   // n8n工作流调用方法 - 使用你的网站助手工作流
   const callN8nWorkflow = async (userMessage: string, context: any) => {
     try {
-      // 使用你的网站助手工作流地址
-      const n8nWebhookUrl = 'http://localhost:5678/webhook/website-assistant'
+      // 使用新的Webhook工作流地址
+      const workflowUrl = 'https://cchencchen0512.app.n8n.cloud/webhook/campus-chat'
       
-      console.log('🚀 调用n8n网站助手工作流:', n8nWebhookUrl)
+      console.log('🚀 调用n8n网站助手工作流:', workflowUrl)
       console.log('📤 发送消息:', userMessage)
       console.log('📝 上下文:', context)
       
-      const response = await fetch(n8nWebhookUrl, {
+      // 标准Webhook节点期望的格式
+      const requestBody = {
+        message: userMessage,
+        userId: context.userId || 'anonymous',
+        sessionId: context.sessionId || `session_${Date.now()}`,
+        context: {
+          pageType: context.pageType || 'general',
+          userIntent: context.userIntent || 'general-chat',
+          platform: 'campus-marketplace',
+          timestamp: new Date().toISOString()
+        }
+      }
+      
+      console.log('📤 请求体:', requestBody)
+      
+      const response = await fetch(workflowUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message: userMessage,
-          userId: context.userId || 'anonymous',
-          sessionId: context.sessionId || `session_${Date.now()}`,
-          context: {
-            pageType: context.pageType || 'general',
-            userIntent: context.userIntent || 'general-chat',
-            platform: 'campus-marketplace',
-            timestamp: new Date().toISOString()
-          }
-        })
+        body: JSON.stringify(requestBody)
       })
+      
+      console.log('📥 响应状态:', response.status, response.statusText)
+      console.log('📥 响应头:', Object.fromEntries(response.headers.entries()))
 
       if (!response.ok) {
-        throw new Error(`n8n工作流调用失败: ${response.statusText} (${response.status})`)
+        // 获取详细的错误信息
+        let errorDetails = ''
+        try {
+          const errorText = await response.text()
+          errorDetails = errorText
+        } catch (e) {
+          errorDetails = '无法获取错误详情'
+        }
+        
+        console.error('❌ n8n工作流详细错误:', errorDetails)
+        throw new Error(`n8n工作流调用失败: ${response.statusText} (${response.status}) - ${errorDetails.substring(0, 200)}`)
       }
 
-      const data = await response.json()
+      // 检查响应体是否为空
+      const responseText = await response.text()
+      console.log('📥 原始响应文本:', responseText)
+      
+      if (!responseText || responseText.trim() === '') {
+        console.error('❌ n8n工作流返回空响应体')
+        throw new Error('n8n工作流返回空响应，请检查工作流配置')
+      }
+
+      // 尝试解析JSON
+      let data
+      try {
+        data = JSON.parse(responseText)
+        console.log('📥 解析后的JSON数据:', data)
+      } catch (parseError) {
+        console.error('❌ JSON解析失败:', parseError)
+        console.error('❌ 原始响应内容:', responseText)
+        throw new Error(`JSON解析失败: ${parseError.message} - 响应内容: ${responseText.substring(0, 200)}`)
+      }
       console.log('📥 收到n8n响应:', data)
       
-      if (data.success && data.data && data.data.response) {
+      // 处理n8n工作流可能的多种响应格式
+      if (data.success && data.reply) {
+        // 新的Webhook工作流格式：{ success: true, reply: "AI回复内容" }
+        return data.reply
+      } else if (data.success && data.data && data.data.response) {
         return data.data.response
+      } else if (data.success && data.data && data.data.message) {
+        return data.data.message
       } else if (data.message) {
-        // 工作流启动成功的初始响应
-        return '正在处理您的请求，请稍候...'
+        return data.message
+      } else if (data.response) {
+        return data.response
+      } else if (data.choices && data.choices[0] && data.choices[0].message) {
+        // DeepSeek API直接返回的格式
+        return data.choices[0].message.content
+      } else if (typeof data === 'string') {
+        return data
       } else {
-        throw new Error(data.error || 'n8n工作流返回格式错误')
+        console.warn('n8n工作流返回未知格式，尝试提取文本内容:', data)
+        // 尝试从对象中提取文本内容
+        const textContent = extractTextFromObject(data)
+        return textContent || '收到AI回复，但格式需要调整'
       }
     } catch (error) {
       console.error('❌ n8n工作流调用失败:', error)
       throw error
     }
+  }
+
+  // 从对象中提取文本内容的辅助函数
+  const extractTextFromObject = (obj: any): string => {
+    if (typeof obj === 'string') return obj
+    if (typeof obj === 'number' || typeof obj === 'boolean') return obj.toString()
+    
+    if (obj && typeof obj === 'object') {
+      // 优先查找常见的文本字段
+      if (obj.content) return obj.content
+      if (obj.text) return obj.text
+      if (obj.message) return obj.message
+      if (obj.response) return obj.response
+      if (obj.result) return obj.result
+      
+      // 尝试从数组或嵌套对象中提取
+      if (Array.isArray(obj)) {
+        for (const item of obj) {
+          const text = extractTextFromObject(item)
+          if (text) return text
+        }
+      } else {
+        // 遍历对象属性
+        for (const key in obj) {
+          if (obj[key] && typeof obj[key] === 'string' && obj[key].length > 0) {
+            return obj[key]
+          }
+        }
+      }
+    }
+    
+    return ''
   }
 
   // 模拟AI响应（当API调用失败时备用）
@@ -314,23 +398,9 @@ ${JSON.stringify(transactionInfo, null, 2)}
         currentContext.value = { ...currentContext.value, ...context }
       }
 
-      let response: string
-
-      // 使用n8n工作流调用网站助手AI
-      try {
-        response = await callN8nWorkflow(userMessage, currentContext.value)
-        console.log('✅ n8n网站助手工作流调用成功')
-        
-        // 如果返回的是工作流启动消息，使用模拟回复
-        if (response === '正在处理您的请求，请稍候...') {
-          response = simulateAIResponse(userMessage, currentContext.value)
-        }
-      } catch (error) {
-        console.error('❌ n8n工作流调用失败:', error)
-        // 如果n8n工作流失败，使用模拟回复作为备用
-        response = simulateAIResponse(userMessage, currentContext.value)
-        console.log('🔄 使用模拟回复作为备用方案')
-      }
+      // 直接调用n8n工作流
+      const response = await callN8nWorkflow(userMessage, currentContext.value)
+      console.log('✅ n8n网站助手工作流调用成功')
 
       // 添加AI回复
       const aiMessage = addMessage(response, 'assistant', {
