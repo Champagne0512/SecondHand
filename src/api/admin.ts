@@ -496,56 +496,7 @@ export class AdminAPI {
     }
   }
 
-  // 获取用户列表
-  static async getUsers(page: number = 1, pageSize: number = 20, search: string = ''): Promise<{
-    users: any[]
-    total: number
-  }> {
-    try {
-      const from = (page - 1) * pageSize
-      const to = from + pageSize - 1
 
-      let query = supabase
-        .from('profiles')
-        .select(`
-          *,
-          products (id),
-          favorites (id)
-        `, { count: 'exact' })
-
-      // 搜索条件
-      if (search) {
-        query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
-      }
-
-      const { data, count, error } = await query
-        .order('created_at', { ascending: false })
-        .range(from, to)
-
-      if (error) {
-        throw new Error('获取用户列表失败')
-      }
-
-      // 处理用户数据
-      const users = (data || []).map(user => ({
-        ...user,
-        productCount: user.products?.length || 0,
-        favoriteCount: user.favorites?.length || 0,
-        status: 'active' // 这里可以根据需要添加状态字段
-      }))
-
-      return {
-        users,
-        total: count || 0
-      }
-    } catch (error) {
-      console.error('获取用户列表失败:', error)
-      return {
-        users: [],
-        total: 0
-      }
-    }
-  }
 
   // 更新用户状态
   static async updateUserStatus(userId: string, status: 'active' | 'inactive'): Promise<boolean> {
@@ -560,55 +511,7 @@ export class AdminAPI {
     }
   }
 
-  // 获取商品列表
-  static async getProducts(page: number = 1, pageSize: number = 20, search: string = ''): Promise<{
-    products: any[]
-    total: number
-  }> {
-    try {
-      const from = (page - 1) * pageSize
-      const to = from + pageSize - 1
 
-      let query = supabase
-        .from('products')
-        .select(`
-          *,
-          profiles (username, avatar_url),
-          favorites (id)
-        `, { count: 'exact' })
-
-      // 搜索条件
-      if (search) {
-        query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
-      }
-
-      const { data, count, error } = await query
-        .order('created_at', { ascending: false })
-        .range(from, to)
-
-      if (error) {
-        throw new Error('获取商品列表失败')
-      }
-
-      // 处理商品数据
-      const products = (data || []).map(product => ({
-        ...product,
-        favoriteCount: product.favorites?.length || 0,
-        sellerName: product.profiles?.username || '未知用户'
-      }))
-
-      return {
-        products,
-        total: count || 0
-      }
-    } catch (error) {
-      console.error('获取商品列表失败:', error)
-      return {
-        products: [],
-        total: 0
-      }
-    }
-  }
 
   // 更新商品状态
   static async updateProductStatus(productId: string, status: 'available' | 'sold' | 'pending'): Promise<boolean> {
@@ -717,46 +620,9 @@ export class AdminAPI {
     }
   }
 
-  // 获取网站配置
-  static async getSiteConfigs(): Promise<SiteConfig[]> {
-    try {
-      const { data, error } = await supabase
-        .from('site_configs')
-        .select('*')
-        .order('config_key')
 
-      if (error) {
-        throw new Error('获取网站配置失败')
-      }
 
-      return data || []
-    } catch (error) {
-      console.error('获取网站配置失败:', error)
-      return []
-    }
-  }
 
-  // 更新网站配置
-  static async updateSiteConfig(configKey: string, configValue: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('site_configs')
-        .update({ 
-          config_value: configValue,
-          updated_at: new Date().toISOString()
-        })
-        .eq('config_key', configKey)
-
-      if (error) {
-        throw new Error('更新网站配置失败')
-      }
-
-      return true
-    } catch (error) {
-      console.error('更新网站配置失败:', error)
-      return false
-    }
-  }
 
   // 获取操作日志
   static async getOperationLogs(params: {

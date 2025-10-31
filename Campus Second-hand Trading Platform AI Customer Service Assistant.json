@@ -1,0 +1,279 @@
+{
+  "name": "Campus Second-hand Trading Platform AI Customer Service Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "723318b4-75eb-4bb4-b1ab-42e4f469c88d",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        816,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "campus-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "588472bb-6428-4094-b015-3c7a15a9ec72",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -144,
+        544
+      ],
+      "webhookId": "8a8764f4-0539-4332-9f38-7f91a0804c7d"
+    },
+    {
+      "parameters": {
+        "description": "评估二手商品的合理价格。根据商品类型、品牌、原价、成色、使用时长等因素，提供价格建议和市场参考。",
+        "jsCode": "const productType = $input.params.productType || '';\nconst brand = $input.params.brand || '';\nconst originalPrice = parseFloat($input.params.originalPrice) || 0;\nconst condition = $input.params.condition || '9成新';\nconst usageMonths = parseInt($input.params.usageMonths) || 0;\nconst hasAccessories = $input.params.hasAccessories !== false;\n\n// 成色折扣率\nconst conditionRates = {\n  '全新': 0.85,\n  '99新': 0.75,\n  '95新': 0.65,\n  '9成新': 0.55,\n  '8成新': 0.45,\n  '7成新': 0.35\n};\n\n// 商品类型折旧率（每月）\nconst depreciationRates = {\n  '电子产品': 0.03,\n  '教材教辅': 0.02,\n  '交通工具': 0.025,\n  '服饰鞋包': 0.04,\n  '生活用品': 0.02,\n  '娱乐设备': 0.03,\n  '乐器运动': 0.02\n};\n\n// 品牌溢价\nconst brandPremium = {\n  'Apple': 1.2,\n  'Huawei': 1.1,\n  'Xiaomi': 1.0,\n  'Samsung': 1.15,\n  'Dell': 1.05,\n  'Lenovo': 1.0,\n  '捷安特': 1.1,\n  '美利达': 1.05,\n  '其他': 1.0\n};\n\nif (!originalPrice || originalPrice <= 0) {\n  return {\n    success: false,\n    message: '请提供商品原价以进行价格评估'\n  };\n}\n\n// 计算基础价格\nlet baseRate = conditionRates[condition] || 0.5;\n\n// 计算折旧\nconst monthlyDepreciation = depreciationRates[productType] || 0.025;\nconst depreciationFactor = Math.max(0.2, 1 - (usageMonths * monthlyDepreciation));\n\n// 品牌系数\nconst brandFactor = brandPremium[brand] || 1.0;\n\n// 配件系数\nconst accessoryFactor = hasAccessories ? 1.0 : 0.9;\n\n// 计算估价\nconst estimatedPrice = originalPrice * baseRate * depreciationFactor * brandFactor * accessoryFactor;\n\n// 价格区间（±10%）\nconst minPrice = Math.round(estimatedPrice * 0.9);\nconst maxPrice = Math.round(estimatedPrice * 1.1);\nconst recommendedPrice = Math.round(estimatedPrice);\n\n// 定价建议\nconst pricingStrategy = {\n  quickSale: Math.round(estimatedPrice * 0.85),\n  reasonable: recommendedPrice,\n  premium: Math.round(estimatedPrice * 1.05)\n};\n\n// 市场分析\nconst marketAnalysis = [];\n\nif (productType === '电子产品') {\n  marketAnalysis.push('电子产品更新换代快，建议尽快出售');\n  if (usageMonths > 24) {\n    marketAnalysis.push('使用超过2年，价格会有较大折扣');\n  }\n}\n\nif (productType === '教材教辅') {\n  const currentMonth = new Date().getMonth() + 1;\n  if (currentMonth >= 6 && currentMonth <= 9) {\n    marketAnalysis.push('暑期是教材交易旺季，可以适当提价');\n  } else if (currentMonth >= 2 && currentMonth <= 4) {\n    marketAnalysis.push('考研备考期，考研资料需求旺盛');\n  }\n}\n\nif (!hasAccessories) {\n  marketAnalysis.push('缺少配件会影响售价，建议在描述中说明');\n}\n\nif (condition === '全新' || condition === '99新') {\n  marketAnalysis.push('成色很好，可以定价偏高一些');\n}\n\nreturn {\n  success: true,\n  estimation: {\n    recommendedPrice: recommendedPrice,\n    priceRange: {\n      min: minPrice,\n      max: maxPrice\n    },\n    pricingStrategy: pricingStrategy,\n    factors: {\n      originalPrice: originalPrice,\n      condition: condition,\n      conditionRate: `${(baseRate * 100).toFixed(0)}%`,\n      usageMonths: usageMonths,\n      depreciationRate: `${(depreciationFactor * 100).toFixed(0)}%`,\n      brand: brand || '未指定',\n      brandFactor: brandFactor,\n      hasAccessories: hasAccessories\n    },\n    marketAnalysis: marketAnalysis\n  },\n  summary: `根据商品信息，建议定价为 ¥${recommendedPrice}，合理价格区间为 ¥${minPrice}-¥${maxPrice}`\n};",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"productType\": {\n      \"type\": \"string\",\n      \"description\": \"商品类型：电子产品、教材教辅、交通工具、服饰鞋包、生活用品、娱乐设备、乐器运动\"\n    },\n    \"brand\": {\n      \"type\": \"string\",\n      \"description\": \"品牌名称，如：Apple、Huawei、捷安特等\"\n    },\n    \"originalPrice\": {\n      \"type\": \"number\",\n      \"description\": \"商品原价（必填）\"\n    },\n    \"condition\": {\n      \"type\": \"string\",\n      \"description\": \"商品成色：全新、99新、95新、9成新、8成新、7成新\"\n    },\n    \"usageMonths\": {\n      \"type\": \"number\",\n      \"description\": \"使用时长（月）\"\n    },\n    \"hasAccessories\": {\n      \"type\": \"boolean\",\n      \"description\": \"是否有配件齐全\"\n    }\n  },\n  \"required\": [\"originalPrice\"]\n}"
+      },
+      "id": "6eba2c29-ce46-4711-805c-4ca7c8fba102",
+      "name": "Price Estimation Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "description": "查询订单状态和详细信息。可以通过订单号或用户ID查询订单,返回订单状态、商品信息、买卖双方信息、交易进度等。",
+        "jsCode": "const orderId = $input.params.orderId || '';\nconst userId = $input.params.userId || '';\n\n// 模拟订单数据库\nconst mockOrders = [\n  {\n    orderId: 'ORD20240115001',\n    productId: 'P004',\n    productName: '捷安特山地自行车',\n    price: 450,\n    status: '待取货',\n    statusCode: 'PENDING_PICKUP',\n    buyer: {\n      name: '陈同学',\n      userId: 'U001',\n      contact: '138****2468'\n    },\n    seller: {\n      name: '赵同学',\n      userId: 'U005',\n      contact: '136****3456',\n      location: '南门'\n    },\n    timeline: [\n      { time: '2024-01-15 10:30', event: '订单创建', status: 'created' },\n      { time: '2024-01-15 11:00', event: '卖家确认', status: 'confirmed' },\n      { time: '2024-01-15 14:20', event: '等待取货', status: 'pending_pickup' }\n    ],\n    pickupInfo: {\n      location: '南门自行车棚',\n      appointmentTime: '2024-01-16 15:00',\n      notes: '请提前联系卖家确认时间'\n    },\n    createdAt: '2024-01-15 10:30',\n    updatedAt: '2024-01-15 14:20'\n  },\n  {\n    orderId: 'ORD20240118002',\n    productId: 'P003',\n    productName: '高等数学教材（同济版）',\n    price: 30,\n    status: '已完成',\n    statusCode: 'COMPLETED',\n    buyer: {\n      name: '周同学',\n      userId: 'U002',\n      contact: '139****1357'\n    },\n    seller: {\n      name: '王同学',\n      userId: 'U003',\n      contact: '137****9012',\n      location: '图书馆'\n    },\n    timeline: [\n      { time: '2024-01-18 09:00', event: '订单创建', status: 'created' },\n      { time: '2024-01-18 09:15', event: '卖家确认', status: 'confirmed' },\n      { time: '2024-01-18 16:30', event: '交易完成', status: 'completed' },\n      { time: '2024-01-18 17:00', event: '双方评价', status: 'reviewed' }\n    ],\n    rating: {\n      buyerRating: 5,\n      sellerRating: 5,\n      buyerComment: '书很新，卖家人很好！',\n      sellerComment: '买家很爽快，交易愉快！'\n    },\n    createdAt: '2024-01-18 09:00',\n    completedAt: '2024-01-18 16:30'\n  },\n  {\n    orderId: 'ORD20240120003',\n    productId: 'P002',\n    productName: 'iPhone 13 256GB 粉色',\n    price: 3600,\n    status: '协商中',\n    statusCode: 'NEGOTIATING',\n    buyer: {\n      name: '吴同学',\n      userId: 'U004',\n      contact: '137****8642'\n    },\n    seller: {\n      name: '李同学',\n      userId: 'U006',\n      contact: '139****5678',\n      location: '西区宿舍'\n    },\n    timeline: [\n      { time: '2024-01-20 13:00', event: '订单创建', status: 'created' },\n      { time: '2024-01-20 13:30', event: '买家申请议价', status: 'negotiating' }\n    ],\n    negotiation: {\n      originalPrice: 3600,\n      proposedPrice: 3400,\n      buyerMessage: '能不能便宜200，学生党预算有限',\n      status: '等待卖家回复'\n    },\n    createdAt: '2024-01-20 13:00',\n    updatedAt: '2024-01-20 13:30'\n  }\n];\n\n// 查询订单\nlet order = null;\n\nif (orderId) {\n  order = mockOrders.find(o => o.orderId === orderId);\n} else if (userId) {\n  // 返回该用户的所有订单\n  const userOrders = mockOrders.filter(o => \n    o.buyer.userId === userId || o.seller.userId === userId\n  );\n  \n  if (userOrders.length > 0) {\n    return {\n      success: true,\n      count: userOrders.length,\n      orders: userOrders.map(o => ({\n        orderId: o.orderId,\n        productName: o.productName,\n        price: o.price,\n        status: o.status,\n        role: o.buyer.userId === userId ? '买家' : '卖家',\n        createdAt: o.createdAt\n      }))\n    };\n  }\n}\n\nif (!order) {\n  return {\n    success: false,\n    message: '未找到订单信息，请检查订单号是否正确'\n  };\n}\n\nreturn {\n  success: true,\n  order: order\n};",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"orderId\": {\n      \"type\": \"string\",\n      \"description\": \"订单号，格式如：ORD20240115001\"\n    },\n    \"userId\": {\n      \"type\": \"string\",\n      \"description\": \"用户ID，用于查询该用户的所有订单\"\n    }\n  }\n}"
+      },
+      "id": "016137a2-91f3-43d3-ba79-937271bc1e27",
+      "name": "Order Status Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "description": "搜索校园二手交易平台上的商品。可以根据关键词、分类、价格区间等条件搜索。返回匹配的商品列表,包含商品名称、价格、成色、卖家信息、位置等详细信息。",
+        "jsCode": "const keyword = $input.params.keyword || '';\nconst category = $input.params.category || '';\nconst minPrice = $input.params.minPrice || 0;\nconst maxPrice = $input.params.maxPrice || 999999;\n\n// 模拟商品数据库搜索\n// 实际使用时,这里应该调用真实的API或数据库\nconst mockProducts = [\n  {\n    id: 'P001',\n    name: 'iPhone 13 128GB 蓝色',\n    category: '电子产品',\n    price: 3200,\n    condition: '95新',\n    description: '自用半年,成色很好,配件齐全(充电器、数据线、耳机),无磕碰划痕',\n    seller: '张同学',\n    location: '东区宿舍',\n    contact: '138****1234',\n    images: 3,\n    views: 156,\n    postedDate: '2024-01-15'\n  },\n  {\n    id: 'P002',\n    name: 'iPhone 13 256GB 粉色',\n    category: '电子产品',\n    price: 3600,\n    condition: '99新',\n    description: '几乎全新,只用了一个月,因换新机出售,还在保修期内',\n    seller: '李同学',\n    location: '西区宿舍',\n    contact: '139****5678',\n    images: 5,\n    views: 203,\n    postedDate: '2024-01-18'\n  },\n  {\n    id: 'P003',\n    name: '高等数学教材(同济版)',\n    category: '教材教辅',\n    price: 30,\n    condition: '9成新',\n    description: '有少量笔记,不影响使用,适合大一新生',\n    seller: '王同学',\n    location: '图书馆',\n    contact: '137****9012',\n    images: 2,\n    views: 89,\n    postedDate: '2024-01-10'\n  },\n  {\n    id: 'P004',\n    name: '捷安特山地自行车',\n    category: '交通工具',\n    price: 450,\n    condition: '8成新',\n    description: '骑了两年,车况良好,刚换的新轮胎',\n    seller: '赵同学',\n    location: '南门',\n    contact: '136****3456',\n    images: 4,\n    views: 124,\n    postedDate: '2024-01-12'\n  },\n  {\n    id: 'P005',\n    name: 'MacBook Air M1 8G+256G',\n    category: '电子产品',\n    price: 5200,\n    condition: '95新',\n    description: '2022年购入,轻度使用,主要用于写作业,电池健康度98%',\n    seller: '孙同学',\n    location: '北区宿舍',\n    contact: '135****7890',\n    images: 6,\n    views: 312,\n    postedDate: '2024-01-20'\n  }\n];\n\n// 过滤商品\nconst results = mockProducts.filter(product => {\n  const matchKeyword = !keyword || \n    product.name.toLowerCase().includes(keyword.toLowerCase()) ||\n    product.description.toLowerCase().includes(keyword.toLowerCase());\n  \n  const matchCategory = !category || product.category === category;\n  \n  const matchPrice = product.price >= minPrice && product.price <= maxPrice;\n  \n  return matchKeyword && matchCategory && matchPrice;\n});\n\nreturn {\n  success: true,\n  count: results.length,\n  products: results,\n  searchParams: {\n    keyword,\n    category,\n    priceRange: `¥${minPrice}-¥${maxPrice}`\n  }\n};",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"keyword\": {\n      \"type\": \"string\",\n      \"description\": \"搜索关键词,如商品名称、品牌等\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"description\": \"商品分类:电子产品、教材教辅、交通工具、服饰鞋包、生活用品、娱乐设备、乐器运动等\"\n    },\n    \"minPrice\": {\n      \"type\": \"number\",\n      \"description\": \"最低价格\"\n    },\n    \"maxPrice\": {\n      \"type\": \"number\",\n      \"description\": \"最高价格\"\n    }\n  }\n}"
+      },
+      "id": "db8dcd0d-bb35-4261-895c-43f7f950d291",
+      "name": "Product Search Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.sessionId || 'default-session' }}",
+        "contextWindowLength": 10
+      },
+      "id": "9933ebb8-0be8-4adb-83a5-540844388bf8",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "你是校园二手交易平台的专业智能客服助手，名字叫「小二」。你的职责是帮助大学生用户进行商品搜索、订单查询、价格评估、平台使用指导和交易纠纷解决。\n\n## 你的专业领域\n\n### 1. 商品分类知识\n- 📱 电子产品：手机、电脑、平板、耳机、相机等\n- 📚 教材教辅：各学科教材、考研资料、四六级资料等\n- 🚲 交通工具：自行车、电动车、滑板等\n- 🎮 娱乐设备：游戏机、Switch、手柄、VR设备等\n- 👔 服饰鞋包：衣服、鞋子、包包、配饰等\n- ⚽ 乐器运动：吉他、篮球、羽毛球拍、健身器材等\n- 🏠 生活用品：台灯、风扇、收纳箱、床上用品等\n\n### 2. 价格评估因素\n- 商品原价和品牌\n- 成色等级（全新、99新、95新、9成新、8成新、7成新）\n- 使用时长\n- 配件是否齐全\n- 市场供需情况\n- 季节性因素\n\n### 3. 安全交易提醒\n- 建议校内当面交易\n- 验货后再付款\n- 保留聊天记录\n- 注意个人信息保护\n- 遇到纠纷及时联系平台客服\n\n## 可用工具说明\n\n你有三个强大的工具来帮助用户：\n\n1. **search_products** - 商品搜索工具\n   - 用途：搜索平台上的二手商品\n   - 参数：keyword（关键词）、category（分类）、minPrice（最低价）、maxPrice（最高价）\n   - 使用场景：用户想找某个商品、查看某类商品、在特定价格区间搜索\n\n2. **check_order_status** - 订单查询工具\n   - 用途：查询订单状态和详情\n   - 参数：orderId（订单号）或 userId（用户ID）\n   - 使用场景：用户询问订单进度、交易状态、历史订单\n\n3. **estimate_price** - 价格评估工具\n   - 用途：评估二手商品的合理价格\n   - 参数：productType、brand、originalPrice（必填）、condition、usageMonths、hasAccessories\n   - 使用场景：用户想知道商品该卖多少钱、评估商品价值\n\n## 沟通风格\n\n- 🎯 友好亲切，使用适当的emoji让对话更生动\n- 💬 用简洁清晰的语言，避免过于专业的术语\n- 🤝 站在学生角度思考，理解预算有限的情况\n- ⚡ 快速响应，提供高效的解决方案\n- 😊 保持耐心和热情，即使面对重复问题\n\n## 响应流程\n\n1. **理解需求**：仔细分析用户的问题和意图\n2. **选择工具**：根据需求选择合适的工具\n3. **调用工具**：使用正确的参数调用工具\n4. **解读结果**：将工具返回的数据转化为易懂的回复\n5. **提供建议**：基于结果给出实用的建议\n6. **引导下一步**：告诉用户可以做什么或还能帮什么\n\n## 特殊情况处理\n\n- 如果搜索无结果：建议调整关键词、扩大价格区间或推荐相似商品\n- 如果订单有问题：详细说明当前状态，提供解决建议\n- 如果价格评估缺少信息：友好地询问缺失的必要信息\n- 如果遇到投诉纠纷：表示理解，记录问题，承诺跟进处理\n- 如果超出能力范围：诚实告知，并引导用户联系人工客服\n\n## 你的使命\n\n为大学生提供专业、高效、温暖的二手交易服务，让校园交易更安全、更便捷、更愉快！💪✨"
+        }
+      },
+      "id": "7943e47f-8343-4d1f-8b94-e426727792b1",
+      "name": "Customer Service AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        288,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.7
+        }
+      },
+      "id": "26a077ac-9d5f-4108-92e0-2c52d82dc174",
+      "name": "DeepSeek AI Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        96,
+        768
+      ],
+      "credentials": {
+        "deepSeekApi": {
+          "id": "ClH9Xqk6RH8JjPYq",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "id-2",
+              "name": "reply",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "sessionId",
+              "value": "={{ $('Webhook Trigger').first().json.body.sessionId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "93832956-f1c4-4f58-9870-e7fe69a00854",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        416
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Customer Service AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Price Estimation Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Customer Service AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order Status Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Customer Service AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Product Search Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Customer Service AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Customer Service AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek AI Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Customer Service AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Service AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9def9d41-132c-4783-8635-0ac658338a6a",
+  "meta": {
+    "instanceId": "64b012756609d4a230b77137d99ffd3c87afb0ba6400cfad995512d9670eebe0"
+  },
+  "id": "E6n8ZIze0qjJaxG9",
+  "tags": []
+}
