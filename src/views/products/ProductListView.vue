@@ -198,8 +198,8 @@
                   <div class="product-stats">
                     <span class="create-time">{{ formatTime(product.createdAt) }}</span>
                     <div class="interaction-stats">
-                      <span class="view-count">👁️ {{ product.viewCount }}</span>
-                      <span class="like-count">❤️ {{ product.likeCount }}</span>
+                      <span class="view-count"><el-icon><View /></el-icon> {{ product.viewCount }}</span>
+                      <span class="like-count"><el-icon><Star /></el-icon> {{ product.likeCount }}</span>
                     </div>
                   </div>
                 </div>
@@ -227,7 +227,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
 import GlobalNavigation from '@/components/GlobalNavigation.vue'
-import { ShoppingBag, Search, Plus, Refresh, Filter } from '@element-plus/icons-vue'
+import { ShoppingBag, Search, Plus, Refresh, Filter, View, Star } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()

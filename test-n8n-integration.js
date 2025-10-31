@@ -3,8 +3,8 @@ import fetch from 'node-fetch';
 async function testN8nWorkflow() {
   const workflowUrl = 'https://cchencchen0512.app.n8n.cloud/webhook/02baeca7-10b5-4800-a9e4-7a85c857c10e/chat';
   
-  console.log('🔍 测试n8n工作流连接...');
-  console.log('📤 目标URL:', workflowUrl);
+  console.log('测试n8n工作流连接...');
+  console.log('目标URL:', workflowUrl);
   
   // 测试1: 简单连接测试
   try {
@@ -21,18 +21,18 @@ async function testN8nWorkflow() {
       })
     });
     
-    console.log('📥 响应状态:', response.status, response.statusText);
+    console.log('响应状态:', response.status, response.statusText);
     
     if (response.ok) {
       const data = await response.json();
-      console.log('✅ 连接成功！响应数据:', JSON.stringify(data, null, 2));
+      console.log('连接成功！响应数据:', JSON.stringify(data, null, 2));
     } else {
-      console.log('❌ 连接失败，状态码:', response.status);
+      console.log('连接失败，状态码:', response.status);
       const errorText = await response.text();
-      console.log('📄 错误详情:', errorText);
+      console.log('错误详情:', errorText);
     }
   } catch (error) {
-    console.log('❌ 连接异常:', error.message);
+    console.log('连接异常:', error.message);
   }
   
   // 测试2: 使用LangChain Chat Trigger格式

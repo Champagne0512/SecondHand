@@ -28,7 +28,7 @@
     <!-- 内置AI状态指示 -->
     <div class="ai-status-bar">
       <el-alert
-        title="🤖 AI智能助手已激活"
+        title="AI智能助手已激活"
         type="success"
         description="正在使用DeepSeek AI为您提供智能服务"
         show-icon
@@ -730,7 +730,9 @@
           <!-- 默认欢迎页面 -->
           <div v-else class="welcome-content">
             <div class="welcome-illustration">
-              <div class="ai-robot">🤖</div>
+              <div class="ai-robot">
+                <el-icon size="64"><Robot /></el-icon>
+              </div>
               <h2>欢迎使用AI智能助手</h2>
               <p>选择左侧的功能，开始您的智能化二手交易体验</p>
             </div>
@@ -739,22 +741,30 @@
               <h3>🚀 快速开始</h3>
               <div class="tips-grid">
                 <div class="tip-card" @click="activateFeature(enhancedFeatures[0])">
-                  <div class="tip-icon">✍️</div>
+                  <div class="tip-icon">
+                    <el-icon size="32"><Edit /></el-icon>
+                  </div>
                   <h4>生成商品描述</h4>
                   <p>不会写商品描述？AI帮您写出专业文案</p>
                 </div>
                 <div class="tip-card" @click="activateFeature(enhancedFeatures[1])">
-                  <div class="tip-icon">💰</div>
+                  <div class="tip-icon">
+                    <el-icon size="32"><Money /></el-icon>
+                  </div>
                   <h4>分析合理价格</h4>
                   <p>不知道定价多少？AI基于市场数据分析</p>
                 </div>
                 <div class="tip-card" @click="activateFeature(enhancedFeatures[2])">
-                  <div class="tip-icon">🔍</div>
+                  <div class="tip-icon">
+                    <el-icon size="32"><Search /></el-icon>
+                  </div>
                   <h4>智能搜索商品</h4>
                   <p>用自然语言描述需求，AI帮您找到心仪商品</p>
                 </div>
                 <div class="tip-card" @click="activateFeature(enhancedFeatures[3])">
-                  <div class="tip-icon">🛡️</div>
+                  <div class="tip-icon">
+                    <el-icon size="32"><Shield /></el-icon>
+                  </div>
                   <h4>检测交易安全</h4>
                   <p>AI识别潜在风险，让您的交易更安全</p>
                 </div>
@@ -766,7 +776,7 @@
         <!-- AI聊天区域 -->
         <div class="chat-section">
           <div class="chat-header">
-            <h3>💬 AI助手对话</h3>
+            <h3><el-icon><ChatDotRound /></el-icon> AI助手对话</h3>
             <div class="chat-controls">
               <el-button size="small" @click="clearChat">
                 <el-icon><Delete /></el-icon>
@@ -900,28 +910,28 @@ const enhancedFeatures = [
     id: 'description',
     name: '智能描述生成',
     description: 'AI生成专业商品描述',
-    icon: '✍️',
+    icon: 'Edit',
     badge: '热门'
   },
   {
     id: 'price',
     name: '智能价格分析',
     description: '基于市场数据的价格建议',
-    icon: '💰',
+    icon: 'Money',
     badge: '精准'
   },
   {
     id: 'search',
     name: '智能商品搜索',
     description: '自然语言理解搜索',
-    icon: '🔍',
+    icon: 'Search',
     badge: 'AI'
   },
   {
     id: 'safety',
     name: '交易安全检测',
     description: 'AI识别交易风险',
-    icon: '🛡️',
+    icon: 'Shield',
     badge: '安全'
   },
   {

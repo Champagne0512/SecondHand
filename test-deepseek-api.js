@@ -1,6 +1,6 @@
 // 测试DeepSeek API连接
 const testDeepSeekAPI = async () => {
-  console.log('🔍 测试DeepSeek API连接...')
+  console.log('测试DeepSeek API连接...')
   
   // DeepSeek API端点
   const apiUrl = 'https://api.deepseek.com/v1/chat/completions'
@@ -18,7 +18,7 @@ const testDeepSeekAPI = async () => {
     temperature: 0.7
   }
   
-  console.log('📤 测试请求:', JSON.stringify(testData, null, 2))
+  console.log('测试请求:', JSON.stringify(testData, null, 2))
   
   try {
     // 注意：这里需要真实的API密钥
@@ -32,18 +32,18 @@ const testDeepSeekAPI = async () => {
       body: JSON.stringify(testData)
     })
     
-    console.log('📥 响应状态:', response.status, response.statusText)
+    console.log('响应状态:', response.status, response.statusText)
     
     if (response.ok) {
       const data = await response.json()
-      console.log('✅ API连接成功:', JSON.stringify(data, null, 2))
+      console.log('API连接成功:', JSON.stringify(data, null, 2))
     } else {
       const errorText = await response.text()
-      console.log('❌ API连接失败:', errorText)
+      console.log('API连接失败:', errorText)
     }
     
   } catch (error) {
-    console.error('💥 请求失败:', error.message)
+    console.error('请求失败:', error.message)
   }
 }
 

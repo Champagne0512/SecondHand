@@ -6,7 +6,7 @@
     <!-- 页面头部 -->
     <div class="campus-header">
       <div class="header-content">
-        <h1>🏫 校园生活</h1>
+        <h1><el-icon><School /></el-icon> 校园生活</h1>
         <p>发现校园精彩，连接同学情谊</p>
       </div>
     </div>
@@ -16,7 +16,9 @@
       <el-row :gutter="20">
         <el-col :xs="24" :sm="12" :md="8" :lg="6">
           <div class="nav-card campus-posts" @click="$router.push('/campus/posts')">
-            <div class="nav-icon">💬</div>
+            <div class="nav-icon">
+              <el-icon size="32"><ChatDotRound /></el-icon>
+            </div>
             <h3>校园动态</h3>
             <p>分享生活点滴，了解校园新鲜事</p>
             <div class="nav-stats">{{ campusStore.campusPosts.length }} 条动态</div>
@@ -25,7 +27,9 @@
         
         <el-col :xs="24" :sm="12" :md="8" :lg="6">
           <div class="nav-card campus-events" @click="$router.push('/campus/events')">
-            <div class="nav-icon">🎉</div>
+            <div class="nav-icon">
+              <el-icon size="32"><Promotion /></el-icon>
+            </div>
             <h3>校园活动</h3>
             <p>参与精彩活动，丰富校园生活</p>
             <div class="nav-stats">{{ campusStore.campusEvents.length }} 个活动</div>
@@ -34,7 +38,9 @@
         
         <el-col :xs="24" :sm="12" :md="8" :lg="6">
           <div class="nav-card lost-found" @click="$router.push('/campus/lost-found')">
-            <div class="nav-icon">🔍</div>
+            <div class="nav-icon">
+              <el-icon size="32"><Search /></el-icon>
+            </div>
             <h3>失物招领</h3>
             <p>丢失物品寻找，捡到物品归还</p>
             <div class="nav-stats">{{ campusStore.lostFoundItems.length }} 条信息</div>
@@ -43,7 +49,9 @@
         
         <el-col :xs="24" :sm="12" :md="8" :lg="6">
           <div class="nav-card analytics" @click="$router.push('/analytics')">
-            <div class="nav-icon">📊</div>
+            <div class="nav-icon">
+              <el-icon size="32"><DataAnalysis /></el-icon>
+            </div>
             <h3>数据分析</h3>
             <p>价格趋势分析，智能购买建议</p>
             <div class="nav-stats">智能分析</div>
@@ -55,7 +63,7 @@
     <!-- 最新动态预览 -->
     <div class="section-preview">
       <div class="section-header">
-        <h2>🔥 最新校园动态</h2>
+        <h2><el-icon><Fire /></el-icon> 最新校园动态</h2>
         <el-link type="primary" @click="$router.push('/campus/posts')">查看更多</el-link>
       </div>
       
@@ -95,8 +103,8 @@
           
           <div class="post-footer">
             <div class="post-stats">
-              <span>❤️ {{ post.likes }}</span>
-              <span>💬 {{ post.comments }}</span>
+              <span><el-icon><Star /></el-icon> {{ post.likes }}</span>
+              <span><el-icon><ChatDotRound /></el-icon> {{ post.comments }}</span>
             </div>
             <span class="post-time">{{ formatTime(post.createdAt) }}</span>
           </div>
@@ -114,7 +122,7 @@
     <!-- 即将开始的活动 -->
     <div class="section-preview">
       <div class="section-header">
-        <h2>📅 即将开始的活动</h2>
+        <h2><el-icon><Calendar /></el-icon> 即将开始的活动</h2>
         <el-link type="primary" @click="$router.push('/campus/events')">查看更多</el-link>
       </div>
       
@@ -138,8 +146,8 @@
             <h4>{{ event.title }}</h4>
             <p class="event-desc">{{ truncateText(event.description, 50) }}</p>
             <div class="event-meta">
-              <span>📍 {{ event.location }}</span>
-              <span>👥 {{ event.currentParticipants }}/{{ event.maxParticipants }}</span>
+              <span><el-icon><Location /></el-icon> {{ event.location }}</span>
+              <span><el-icon><User /></el-icon> {{ event.currentParticipants }}/{{ event.maxParticipants }}</span>
             </div>
             <el-tag :type="getEventCategoryTag(event.category)" size="small">
               {{ getEventCategoryLabel(event.category) }}
@@ -159,7 +167,7 @@
     <!-- 失物招领 -->
     <div class="section-preview">
       <div class="section-header">
-        <h2>🔍 失物招领</h2>
+        <h2><el-icon><Search /></el-icon> 失物招领</h2>
         <el-link type="primary" @click="$router.push('/campus/lost-found')">查看更多</el-link>
       </div>
       
@@ -185,8 +193,8 @@
           <p class="item-desc">{{ truncateText(item.description, 60) }}</p>
           
           <div class="item-meta">
-            <span>📍 {{ item.location }}</span>
-            <span>📅 {{ formatDate(item.date) }}</span>
+            <span><el-icon><Location /></el-icon> {{ item.location }}</span>
+            <span><el-icon><Calendar /></el-icon> {{ formatDate(item.date) }}</span>
           </div>
           
           <div class="item-category">
@@ -206,7 +214,7 @@
     <!-- AI助手入口 -->
     <div class="ai-assistant-section">
       <div class="ai-header">
-        <h2>🤖 AI智能助手</h2>
+        <h2><el-icon><Robot /></el-icon> AI智能助手</h2>
         <p>让AI帮助你更好地使用平台</p>
       </div>
       
@@ -214,7 +222,9 @@
         <el-row :gutter="20">
           <el-col :xs="24" :sm="12" :md="8">
             <div class="ai-feature-card" @click="$router.push('/ai-assistant')">
-              <div class="ai-icon">✍️</div>
+              <div class="ai-icon">
+                <el-icon size="32"><Edit /></el-icon>
+              </div>
               <h4>智能文案</h4>
               <p>AI帮你写出吸引人的商品描述</p>
             </div>
@@ -222,7 +232,9 @@
           
           <el-col :xs="24" :sm="12" :md="8">
             <div class="ai-feature-card" @click="$router.push('/analytics')">
-              <div class="ai-icon">💰</div>
+              <div class="ai-icon">
+                <el-icon size="32"><Money /></el-icon>
+              </div>
               <h4>价格分析</h4>
               <p>智能分析商品价格趋势</p>
             </div>
@@ -230,7 +242,9 @@
           
           <el-col :xs="24" :sm="12" :md="8">
             <div class="ai-feature-card" @click="$router.push('/ai-assistant')">
-              <div class="ai-icon">🎯</div>
+              <div class="ai-icon">
+                <el-icon size="32"><Aim /></el-icon>
+              </div>
               <h4>智能推荐</h4>
               <p>个性化商品推荐</p>
             </div>

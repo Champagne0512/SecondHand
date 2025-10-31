@@ -2,8 +2,8 @@
 const testN8nDeepSeek = async () => {
   const workflowUrl = 'https://cchencchen0512.app.n8n.cloud/webhook/02baeca7-10b5-4800-a9e4-7a85c857c10e/chat'
   
-  console.log('🧪 测试n8n工作流与DeepSeek模型...')
-  console.log('📤 工作流URL:', workflowUrl)
+  console.log('测试n8n工作流与DeepSeek模型...')
+  console.log('工作流URL:', workflowUrl)
   
   // 测试不同的请求格式
   const testCases = [
@@ -44,21 +44,21 @@ const testN8nDeepSeek = async () => {
         body: JSON.stringify(testCase.body)
       })
       
-      console.log('📥 响应状态:', response.status, response.statusText)
+      console.log('响应状态:', response.status, response.statusText)
       
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ 响应数据:', JSON.stringify(data, null, 2))
+        console.log('响应数据:', JSON.stringify(data, null, 2))
       } else {
         // 尝试获取错误详情
         const errorText = await response.text()
-        console.log('❌ 错误响应:', errorText)
+        console.log('错误响应:', errorText)
         
         // 检查响应头
-        console.log('📋 响应头:', Object.fromEntries(response.headers.entries()))
+        console.log('响应头:', Object.fromEntries(response.headers.entries()))
       }
     } catch (error) {
-      console.error('💥 请求失败:', error.message)
+      console.error('请求失败:', error.message)
     }
   }
 }

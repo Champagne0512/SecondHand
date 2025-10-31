@@ -15,10 +15,10 @@
                 <p class="banner-subtitle">让闲置物品找到新主人，开启绿色循环经济</p>
                 <div class="banner-actions">
                   <el-button type="primary" size="large" @click="$router.push('/products')">
-                    🔍 浏览商品
+                    <el-icon><Search /></el-icon> 浏览商品
                   </el-button>
                   <el-button v-if="!userStore.isLoggedIn" size="large" @click="$router.push('/login')">
-                    🚀 立即登录
+                    <el-icon><Rocket /></el-icon> 立即登录
                   </el-button>
                 </div>
               </div>
@@ -42,22 +42,30 @@
           <div class="feature-section">
             <div class="feature-grid">
               <div class="feature-item">
-                <div class="feature-icon">🛒</div>
+                <div class="feature-icon">
+                  <el-icon size="48"><ShoppingCart /></el-icon>
+                </div>
                 <h3 class="feature-title">海量商品</h3>
                 <p class="feature-desc">覆盖校园各类二手物品，满足不同需求</p>
               </div>
               <div class="feature-item">
-                <div class="feature-icon">🔒</div>
+                <div class="feature-icon">
+                  <el-icon size="48"><Lock /></el-icon>
+                </div>
                 <h3 class="feature-title">安全保障</h3>
                 <p class="feature-desc">实名认证交易，确保交易安全可靠</p>
               </div>
               <div class="feature-item">
-                <div class="feature-icon">⚡</div>
+                <div class="feature-icon">
+                  <el-icon size="48"><Lightning /></el-icon>
+                </div>
                 <h3 class="feature-title">快速交易</h3>
                 <p class="feature-desc">简单发布流程，快速完成交易</p>
               </div>
               <div class="feature-item">
-                <div class="feature-icon">🤖</div>
+                <div class="feature-icon">
+                  <el-icon size="48"><Robot /></el-icon>
+                </div>
                 <h3 class="feature-title">AI助手</h3>
                 <p class="feature-desc">智能推荐，帮你找到心仪商品</p>
               </div>
@@ -165,7 +173,9 @@
                     v-for="notice in notifications" 
                     :key="notice.id"
                   >
-                    <div class="notification-icon">📢</div>
+                    <div class="notification-icon">
+                      <el-icon><Bell /></el-icon>
+                    </div>
                     <div class="notification-content">
                       <h4>{{ notice.title }}</h4>
                       <p>{{ notice.content }}</p>
@@ -302,25 +312,25 @@ const searchTags = ref([
 const latestNews = ref([
   {
     id: 1,
-    avatar: '👤',
+    avatar: 'User',
     text: '张三 刚刚发布了 MacBook Pro 2021',
     time: '2分钟前'
   },
   {
     id: 2,
-    avatar: '👤',
+    avatar: 'User',
     text: '李四 购买了 考研英语词汇书',
     time: '5分钟前'
   },
   {
     id: 3,
-    avatar: '👤',
+    avatar: 'User',
     text: '王五 发布了 全新运动鞋',
     time: '10分钟前'
   },
   {
     id: 4,
-    avatar: '👤',
+    avatar: 'User',
     text: '赵六 收藏了 专业相机',
     time: '15分钟前'
   }

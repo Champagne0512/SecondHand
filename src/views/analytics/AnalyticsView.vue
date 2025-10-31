@@ -6,7 +6,7 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
-        <h1>📊 数据分析</h1>
+        <h1><el-icon><DataAnalysis /></el-icon> 数据分析</h1>
         <p>智能分析商品价格趋势，助您做出明智决策</p>
       </div>
     </div>
@@ -16,7 +16,9 @@
       <el-row :gutter="20">
         <el-col :xs="24" :sm="12" :md="6">
           <div class="stat-card">
-            <div class="stat-icon">💰</div>
+            <div class="stat-icon">
+              <el-icon size="32"><Money /></el-icon>
+            </div>
             <div class="stat-content">
               <div class="stat-number">¥{{ averagePrice }}</div>
               <div class="stat-label">平均价格</div>
@@ -26,7 +28,9 @@
         
         <el-col :xs="24" :sm="12" :md="6">
           <div class="stat-card">
-            <div class="stat-icon">📈</div>
+            <div class="stat-icon">
+              <el-icon size="32"><TrendCharts /></el-icon>
+            </div>
             <div class="stat-content">
               <div class="stat-number">{{ priceTrend }}</div>
               <div class="stat-label">价格趋势</div>
@@ -36,7 +40,9 @@
         
         <el-col :xs="24" :sm="12" :md="6">
           <div class="stat-card">
-            <div class="stat-icon">🏷️</div>
+            <div class="stat-icon">
+              <el-icon size="32"><PriceTag /></el-icon>
+            </div>
             <div class="stat-content">
               <div class="stat-number">{{ categoryCount }}</div>
               <div class="stat-label">商品分类</div>
@@ -46,7 +52,9 @@
         
         <el-col :xs="24" :sm="12" :md="6">
           <div class="stat-card">
-            <div class="stat-icon">📊</div>
+            <div class="stat-icon">
+              <el-icon size="32"><DataAnalysis /></el-icon>
+            </div>
             <div class="stat-content">
               <div class="stat-number">{{ totalProducts }}</div>
               <div class="stat-label">商品总数</div>
@@ -59,7 +67,7 @@
     <!-- 价格分析工具 -->
     <div class="analysis-tool">
       <div class="tool-header">
-        <h2>💡 智能价格评估</h2>
+        <h2><el-icon><LightBulb /></el-icon> 智能价格评估</h2>
         <p>输入商品信息，获得专业的价格建议</p>
       </div>
       
@@ -134,7 +142,7 @@
     <div v-if="priceEvaluation" class="analysis-result">
       <el-card class="result-card">
         <div class="result-header">
-          <h3>📊 分析结果</h3>
+          <h3><el-icon><DataAnalysis /></el-icon> 分析结果</h3>
           <el-progress 
             :percentage="priceEvaluation.confidence" 
             :status="getConfidenceStatus(priceEvaluation.confidence)"
@@ -157,7 +165,7 @@
           </div>
           
           <div v-if="priceEvaluation.factors.length > 0" class="factors-section">
-            <h4>📋 影响因素</h4>
+            <h4><el-icon><List /></el-icon> 影响因素</h4>
             <ul class="factors-list">
               <li v-for="factor in priceEvaluation.factors" :key="factor">
                 {{ factor }}
@@ -166,7 +174,7 @@
           </div>
           
           <div v-if="priceEvaluation.marketData" class="market-section">
-            <h4>📈 市场数据</h4>
+            <h4><el-icon><TrendCharts /></el-icon> 市场数据</h4>
             <div class="market-stats">
               <div class="market-stat">
                 <span class="stat-label">同类商品数量</span>
@@ -191,7 +199,7 @@
     <!-- 分类价格统计 -->
     <div class="category-stats">
       <div class="section-header">
-        <h2>📊 分类价格统计</h2>
+        <h2><el-icon><DataAnalysis /></el-icon> 分类价格统计</h2>
         <p>各商品分类的平均价格对比</p>
       </div>
       
@@ -244,7 +252,7 @@
     <!-- 价格趋势预测 -->
     <div class="trend-prediction">
       <div class="section-header">
-        <h2>🔮 价格趋势预测</h2>
+        <h2><el-icon><MagicStick /></el-icon> 价格趋势预测</h2>
         <p>基于历史数据预测未来价格走势</p>
       </div>
       
@@ -252,7 +260,7 @@
         <el-card class="prediction-card">
           <template #header>
             <div class="card-header">
-              <span>📈 整体趋势</span>
+              <span><el-icon><TrendCharts /></el-icon> 整体趋势</span>
             </div>
           </template>
           <div class="prediction-content">
@@ -294,25 +302,25 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <div class="tip-item">
-                <h4>📊 数据准确性</h4>
+                <h4><el-icon><DataAnalysis /></el-icon> 数据准确性</h4>
                 <p>价格分析基于近期市场数据，建议结合实际情况考虑。</p>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="tip-item">
-                <h4>🔄 定期更新</h4>
+                <h4><el-icon><Refresh /></el-icon> 定期更新</h4>
                 <p>市场价格会随时间变化，建议定期查看最新数据。</p>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="tip-item">
-                <h4>🎯 多因素考虑</h4>
+                <h4><el-icon><Aim /></el-icon> 多因素考虑</h4>
                 <p>除了价格，还要考虑商品成色、品牌、功能等因素。</p>
               </div>
             </el-col>
             <el-col :span="12">
               <div class="tip-item">
-                <h4>💬 市场反馈</h4>
+                <h4><el-icon><ChatDotRound /></el-icon> 市场反馈</h4>
                 <p>可以参考其他用户的反馈和评价，做出更明智的选择。</p>
               </div>
             </el-col>

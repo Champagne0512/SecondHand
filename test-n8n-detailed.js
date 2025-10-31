@@ -2,8 +2,8 @@
 const testN8nWorkflow = async () => {
   const workflowUrl = 'https://cchencchen0512.app.n8n.cloud/webhook/campus-chat'
   
-  console.log('🔍 详细测试n8n工作流...')
-  console.log('📤 目标URL:', workflowUrl)
+  console.log('详细测试n8n工作流...')
+  console.log('目标URL:', workflowUrl)
   
   // 测试不同的请求格式
   const testCases = [
@@ -79,7 +79,7 @@ const testN8nWorkflow = async () => {
     }
   }
   
-  console.log('\n🔧 问题诊断建议:')
+  console.log('\n问题诊断建议:')
   console.log('1. 检查n8n工作流是否已激活（绿色激活状态）')
   console.log('2. 确认DeepSeek API密钥在n8n中配置正确')
   console.log('3. 检查工作流中的Customer Service AI Agent节点配置')

@@ -60,11 +60,11 @@
                 </p>
                 <div class="product-meta">
                   <span class="product-location">📍 {{ product.location }}</span>
-                  <span class="favorite-time">❤️ 收藏于 {{ formatDate(product.favoriteTime) }}</span>
+                  <span class="favorite-time"><el-icon><Star /></el-icon> 收藏于 {{ formatDate(product.favoriteTime) }}</span>
                 </div>
                 <div class="product-stats">
-                  <span class="view-count">👁️ {{ product.viewCount }}</span>
-                  <span class="like-count">❤️ {{ product.likeCount }}</span>
+                  <span class="view-count"><el-icon><View /></el-icon> {{ product.viewCount }}</span>
+                  <span class="like-count"><el-icon><Star /></el-icon> {{ product.likeCount }}</span>
                 </div>
               </div>
             </div>
@@ -76,7 +76,7 @@
               <template #description>
                 <p>您还没有收藏任何商品</p>
                 <p style="font-size: 14px; color: #909399; margin-top: 8px;">
-                  在商品详情页点击 ❤️ 收藏您感兴趣的商品
+                  在商品详情页点击 <el-icon><Star /></el-icon> 收藏您感兴趣的商品
                 </p>
               </template>
               <el-button type="primary" @click="$router.push('/products')">
@@ -97,7 +97,7 @@ import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
 import { supabase } from '@/lib/supabase'
 import GlobalNavigation from '@/components/GlobalNavigation.vue'
-import { Delete } from '@element-plus/icons-vue'
+import { Delete, Star, View } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 const productStore = useProductStore()
