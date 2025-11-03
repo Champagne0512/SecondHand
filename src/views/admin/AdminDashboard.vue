@@ -119,6 +119,80 @@
               </div>
             </el-col>
           </el-row>
+          
+          <!-- 今日数据统计 -->
+          <el-row :gutter="20" style="margin-top: 20px;">
+            <el-col :xs="24" :sm="8" :md="4">
+              <div class="stat-card today">
+                <div class="stat-icon today-users">
+                  <el-icon><UserFilled /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ stats.todayUsers || 0 }}</div>
+                  <div class="stat-label">今日新增用户</div>
+                </div>
+              </div>
+            </el-col>
+            <el-col :xs="24" :sm="8" :md="4">
+              <div class="stat-card today">
+                <div class="stat-icon today-products">
+                  <el-icon><GoodsFilled /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ stats.todayProducts || 0 }}</div>
+                  <div class="stat-label">今日新增商品</div>
+                </div>
+              </div>
+            </el-col>
+            <el-col :xs="24" :sm="8" :md="4">
+              <div class="stat-card today">
+                <div class="stat-icon today-posts">
+                  <el-icon><DocumentAdd /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ stats.todayPosts || 0 }}</div>
+                  <div class="stat-label">今日新增动态</div>
+                </div>
+              </div>
+            </el-col>
+          </el-row>
+          
+          <!-- 今日数据统计 -->
+          <el-row :gutter="20" style="margin-top: 20px;">
+            <el-col :xs="24" :sm="8" :md="4">
+              <div class="stat-card today">
+                <div class="stat-icon today-users">
+                  <el-icon><UserFilled /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ stats.todayUsers || 0 }}</div>
+                  <div class="stat-label">今日新增用户</div>
+                </div>
+              </div>
+            </el-col>
+            <el-col :xs="24" :sm="8" :md="4">
+              <div class="stat-card today">
+                <div class="stat-icon today-products">
+                  <el-icon><GoodsFilled /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ stats.todayProducts || 0 }}</div>
+                  <div class="stat-label">今日新增商品</div>
+                </div>
+              </div>
+            </el-col>
+            <el-col :xs="24" :sm="8" :md="4">
+              <div class="stat-card today">
+                <div class="stat-icon today-posts">
+                  <el-icon><DocumentAdd /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-value">{{ stats.todayPosts || 0 }}</div>
+                  <div class="stat-label">今日新增动态</div>
+                </div>
+              </div>
+            </el-col>
+          </el-row>
         </div>
 
         <!-- 图表区域 -->
@@ -294,20 +368,27 @@
             </el-table-column>
             <el-table-column prop="status" label="状态" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'active' ? 'success' : 'warning'">
-                  {{ row.status === 'active' ? '上架' : '下架' }}
+                <el-tag :type="row.status === 'available' ? 'success' : 'warning'">
+                  {{ row.status === 'available' ? '上架' : '下架' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200">
+            <el-table-column label="操作" width="250">
               <template #default="{ row }">
                 <el-button size="small" @click="viewProductDetail(row)">查看</el-button>
                 <el-button 
                   size="small" 
-                  :type="row.status === 'active' ? 'warning' : 'success'"
+                  :type="row.status === 'available' ? 'warning' : 'success'"
                   @click="toggleProductStatus(row)"
                 >
-                  {{ row.status === 'active' ? '下架' : '上架' }}
+                  {{ row.status === 'available' ? '下架' : '上架' }}
+                </el-button>
+                <el-button 
+                  size="small" 
+                  type="danger" 
+                  @click="deleteProduct(row)"
+                >
+                  删除
                 </el-button>
               </template>
             </el-table-column>
@@ -488,7 +569,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Setting, DataBoard, User, Goods, Document, Warning,
   ArrowDown, SwitchButton, Search, Download, Refresh,
-  Clock, Edit, Delete, HomeFilled
+  Clock, Edit, Delete, HomeFilled, UserFilled, GoodsFilled, DocumentAdd
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import AdminAPI from '@/api/admin'
@@ -518,7 +599,10 @@ const stats = ref({
   totalUsers: 0,
   totalProducts: 0,
   totalPosts: 0,
-  pendingReviews: 0
+  pendingReviews: 0,
+  todayUsers: 0,
+  todayProducts: 0,
+  todayPosts: 0
 })
 
 // 用户管理相关
@@ -610,11 +694,52 @@ const loadDashboardStats = async () => {
   try {
     const statsData = await AdminAPI.getDashboardStats()
     stats.value = statsData
+    
+    // 加载最近活动
+    const activities = await AdminAPI.getRecentActivities(5)
+    recentActivities.value = activities
+    
+    // 加载今日数据
+    await loadTodayStats()
   } catch (error) {
     console.error('加载数据概览失败:', error)
     ElMessage.error('加载数据失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 加载今日统计数据
+const loadTodayStats = async () => {
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    
+    // 获取今日新用户
+    const { count: todayUsers } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', `${today}T00:00:00`)
+      .lte('created_at', `${today}T23:59:59`)
+    
+    // 获取今日新商品
+    const { count: todayProducts } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', `${today}T00:00:00`)
+      .lte('created_at', `${today}T23:59:59`)
+    
+    // 获取今日新动态
+    const { count: todayPosts } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', `${today}T00:00:00`)
+      .lte('created_at', `${today}T23:59:59`)
+    
+    stats.value.todayUsers = todayUsers || 0
+    stats.value.todayProducts = todayProducts || 0
+    stats.value.todayPosts = todayPosts || 0
+  } catch (error) {
+    console.error('加载今日统计数据失败:', error)
   }
 }
 
@@ -791,6 +916,7 @@ const handleReportCurrentChange = (page: number) => {
 const viewUserDetail = (user: any) => {
   ElMessage.info(`查看用户详情: ${user.username}`)
   // 这里可以跳转到用户详情页面
+  // router.push(`/admin/users/${user.id}`)
 }
 
 const toggleUserStatus = async (user: any) => {
@@ -804,9 +930,15 @@ const toggleUserStatus = async (user: any) => {
       type: 'warning'
     })
     
-    // 这里应该调用API更新用户状态
-    ElMessage.success(`${action}用户成功`)
-    await loadUsers() // 重新加载用户列表
+    // 调用API更新用户状态
+    const success = await AdminAPI.updateUserStatus(user.id, newStatus)
+    
+    if (success) {
+      ElMessage.success(`${action}用户成功`)
+      await loadUsers() // 重新加载用户列表
+    } else {
+      ElMessage.error(`${action}用户失败`)
+    }
   } catch {
     // 用户取消操作
   }
@@ -819,11 +951,14 @@ const exportUsers = () => {
 // 商品管理操作
 const viewProductDetail = (product: any) => {
   ElMessage.info(`查看商品详情: ${product.title}`)
+  // 这里可以跳转到商品详情页面
+  router.push(`/products/${product.id}`)
 }
 
 const toggleProductStatus = async (product: any) => {
   try {
-    const action = product.status === 'active' ? '下架' : '上架'
+    const action = product.status === 'available' ? '下架' : '上架'
+    const newStatus = product.status === 'available' ? 'sold' : 'available'
     
     await ElMessageBox.confirm(`确定要${action}商品 ${product.title} 吗？`, '确认操作', {
       confirmButtonText: '确定',
@@ -831,9 +966,38 @@ const toggleProductStatus = async (product: any) => {
       type: 'warning'
     })
     
-    // 这里应该调用API更新商品状态
-    ElMessage.success(`${action}商品成功`)
-    await loadProducts() // 重新加载商品列表
+    // 调用API更新商品状态
+    const success = await AdminAPI.updateProductStatus(product.id, newStatus)
+    
+    if (success) {
+      ElMessage.success(`${action}商品成功`)
+      await loadProducts() // 重新加载商品列表
+    } else {
+      ElMessage.error(`${action}商品失败`)
+    }
+  } catch {
+    // 用户取消操作
+  }
+}
+
+// 删除商品
+const deleteProduct = async (product: any) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除商品 "${product.title}" 吗？此操作不可恢复！`, '确认删除', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'error',
+      confirmButtonClass: 'el-button--danger'
+    })
+    
+    const success = await AdminAPI.deleteProduct(product.id)
+    
+    if (success) {
+      ElMessage.success('商品删除成功')
+      await loadProducts() // 重新加载商品列表
+    } else {
+      ElMessage.error('商品删除失败')
+    }
   } catch {
     // 用户取消操作
   }

@@ -160,19 +160,42 @@ export class AdminAPI {
         .from('products')
         .select('*', { count: 'exact', head: true })
 
-      // 获取待审核内容数
-      const { count: pendingReviews, error: reviewsError } = await supabase
-        .from('content_reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
+      // 获取待审核内容数 - 如果没有content_reviews表，使用0作为默认值
+      let pendingReviews = 0
+      try {
+        const { count: reviewsCount, error: reviewsError } = await supabase
+          .from('content_reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending')
+        
+        if (!reviewsError) {
+          pendingReviews = reviewsCount || 0
+        }
+      } catch (e) {
+        console.warn('content_reviews表不存在，使用默认值0')
+        pendingReviews = 0
+      }
 
-      // 获取总动态数
-      const { count: totalPosts, error: postsError } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true })
+      // 获取总动态数 - 如果没有posts表，使用商品数量作为替代
+      let totalPosts = 0
+      try {
+        const { count: postsCount, error: postsError } = await supabase
+          .from('posts')
+          .select('*', { count: 'exact', head: true })
+        
+        if (!postsError) {
+          totalPosts = postsCount || 0
+        } else {
+          // 如果没有posts表，使用商品数量作为替代
+          totalPosts = totalProducts || 0
+        }
+      } catch (e) {
+        console.warn('posts表不存在，使用商品数量作为替代')
+        totalPosts = totalProducts || 0
+      }
 
-      if (usersError || productsError || reviewsError || postsError) {
-        console.error('获取统计数据失败:', { usersError, productsError, reviewsError, postsError })
+      if (usersError || productsError) {
+        console.error('获取统计数据失败:', { usersError, productsError })
         return {
           totalUsers: 0,
           totalProducts: 0,
@@ -185,7 +208,7 @@ export class AdminAPI {
         totalUsers: totalUsers || 0,
         totalProducts: totalProducts || 0,
         totalPosts: totalPosts || 0,
-        pendingReviews: pendingReviews || 0
+        pendingReviews: pendingReviews
       }
     } catch (error) {
       console.error('获取统计数据异常:', error)
@@ -224,16 +247,25 @@ export class AdminAPI {
 
       // 获取每个用户的商品数量
       const usersWithStats = await Promise.all(
-        data.map(async (user) => {
-          const { count: productCount } = await supabase
-            .from('products')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id)
+        (data || []).map(async (user) => {
+          try {
+            const { count: productCount } = await supabase
+              .from('products')
+              .select('*', { count: 'exact', head: true })
+              .eq('seller_id', user.id)
 
-          return {
-            ...user,
-            productCount: productCount || 0,
-            status: 'active' // 默认状态
+            return {
+              ...user,
+              productCount: productCount || 0,
+              status: 'active' // 默认状态
+            }
+          } catch (productError) {
+            console.warn(`获取用户 ${user.id} 的商品数量失败:`, productError)
+            return {
+              ...user,
+              productCount: 0,
+              status: 'active'
+            }
           }
         })
       )
@@ -457,14 +489,10 @@ export class AdminAPI {
         .order('created_at', { ascending: false })
         .limit(limit)
 
-      if (usersError || productsError) {
-        throw new Error('获取最近活动失败')
-      }
-
       const activities = []
 
       // 合并活动并按时间排序
-      if (recentUsers) {
+      if (recentUsers && !usersError) {
         recentUsers.forEach(user => {
           activities.push({
             id: user.id,
@@ -475,7 +503,7 @@ export class AdminAPI {
         })
       }
 
-      if (recentProducts) {
+      if (recentProducts && !productsError) {
         recentProducts.forEach(product => {
           activities.push({
             id: product.id,
@@ -501,9 +529,31 @@ export class AdminAPI {
   // 更新用户状态
   static async updateUserStatus(userId: string, status: 'active' | 'inactive'): Promise<boolean> {
     try {
-      // 这里需要根据实际需求实现用户状态更新逻辑
-      // 可能需要添加用户状态字段到profiles表
-      console.log(`更新用户 ${userId} 状态为: ${status}`)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return false
+
+      // 更新用户状态
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+
+      if (error) {
+        console.error('更新用户状态失败:', error)
+        return false
+      }
+
+      // 记录操作日志
+      await this.logAdminOperation({
+        action: 'update_user_status',
+        target_id: userId,
+        details: `更新用户状态为: ${status}`,
+        admin_id: user.id
+      })
+
       return true
     } catch (error) {
       console.error('更新用户状态失败:', error)
@@ -516,14 +566,26 @@ export class AdminAPI {
   // 更新商品状态
   static async updateProductStatus(productId: string, status: 'available' | 'sold' | 'pending'): Promise<boolean> {
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return false
+
       const { error } = await supabase
         .from('products')
         .update({ status, updated_at: new Date().toISOString() })
         .eq('id', productId)
 
       if (error) {
-        throw new Error('更新商品状态失败')
+        console.error('更新商品状态失败:', error)
+        return false
       }
+
+      // 记录操作日志
+      await this.logAdminOperation({
+        action: 'update_product_status',
+        target_id: productId,
+        details: `更新商品状态为: ${status}`,
+        admin_id: user.id
+      })
 
       return true
     } catch (error) {
@@ -624,6 +686,39 @@ export class AdminAPI {
 
 
 
+  // 记录管理员操作日志
+  static async logAdminOperation(params: {
+    action: string
+    target_id?: string
+    details?: string
+    admin_id: string
+  }): Promise<boolean> {
+    try {
+      const { action, target_id, details, admin_id } = params
+
+      const { error } = await supabase
+        .from('admin_operation_logs')
+        .insert({
+          action,
+          target_id,
+          details,
+          admin_id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+      if (error) {
+        console.warn('记录操作日志失败:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.warn('记录操作日志异常:', error)
+      return false
+    }
+  }
+
   // 获取操作日志
   static async getOperationLogs(params: {
     page: number
@@ -697,6 +792,37 @@ export class AdminAPI {
       return true
     } catch (error) {
       console.error('导出数据失败:', error)
+      return false
+    }
+  }
+
+  // 删除商品
+  static async deleteProduct(productId: string): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return false
+
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId)
+
+      if (error) {
+        console.error('删除商品失败:', error)
+        return false
+      }
+
+      // 记录操作日志
+      await this.logAdminOperation({
+        action: 'delete_product',
+        target_id: productId,
+        details: '管理员删除商品',
+        admin_id: user.id
+      })
+
+      return true
+    } catch (error) {
+      console.error('删除商品失败:', error)
       return false
     }
   }

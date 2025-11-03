@@ -128,6 +128,14 @@
                       <el-icon><ChatDotRound /></el-icon>
                       消息中心
                     </el-dropdown-item>
+                    <el-dropdown-item 
+                      v-if="userStore.isAdmin" 
+                      command="admin"
+                      divided
+                    >
+                      <el-icon><Setting /></el-icon>
+                      管理员面板
+                    </el-dropdown-item>
                     <el-dropdown-item divided command="logout">
                       <el-icon><SwitchButton /></el-icon>
                       退出登录
@@ -174,6 +182,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { ElMessage } from 'element-plus'
 import { 
   ShoppingBag, House, Goods, Plus, User, Search, 
   ChatDotRound, SwitchButton, School, Cpu, Setting
@@ -281,6 +290,14 @@ const handleUserCommand = (command: string) => {
       break
     case 'messages':
       router.push('/messages')
+      break
+    case 'admin':
+      // 检查管理员权限
+      if (userStore.isAdmin) {
+        router.push('/admin')
+      } else {
+        ElMessage.warning('您没有管理员权限')
+      }
       break
     case 'logout':
       userStore.logout()
