@@ -480,8 +480,11 @@ const handleImageChange: UploadProps['onChange'] = async (uploadFile, uploadFile
       return file
     })
     
-    // 更新产品图片数组
-    productImages.value = imageList.value.map(file => file.raw as File)
+    // 更新产品图片数组 - 这里需要同时保存原始文件和压缩后的数据URL
+    productImages.value = imageList.value.map(file => {
+      // 保存原始文件用于上传到Supabase
+      return file.raw as File
+    })
     
     console.log('图片处理完成，当前图片数量:', productImages.value.length)
   } catch (error) {

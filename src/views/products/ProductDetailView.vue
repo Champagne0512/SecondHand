@@ -10,7 +10,7 @@
         <section class="product-detail">
           <div class="product-gallery">
             <div class="main-image">
-              <img :src="currentImage || product.images[0] || '/src/assets/default-product.jpg'" :alt="product.title" />
+              <img :src="getImageUrl(currentImage || product.images[0])" :alt="product.title" />
             </div>
             <div class="thumbnail-list" v-if="product.images.length > 1">
               <div 
@@ -20,7 +20,7 @@
                 :class="{ active: currentImage === image }"
                 @click="currentImage = image"
               >
-                <img :src="image" :alt="`${product.title} ${index + 1}`" />
+                <img :src="getImageUrl(image)" :alt="`${product.title} ${index + 1}`" />
               </div>
             </div>
           </div>
@@ -187,6 +187,26 @@ const getStatusText = (status: string) => {
 // 格式化日期
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('zh-CN')
+}
+
+// 获取图片URL，处理base64和普通URL
+const getImageUrl = (imageUrl: string) => {
+  if (!imageUrl) {
+    return '/src/assets/default-product.jpg'
+  }
+  
+  // 如果是base64数据URL，直接返回
+  if (imageUrl.startsWith('data:')) {
+    return imageUrl
+  }
+  
+  // 如果是相对路径，添加基础路径
+  if (imageUrl.startsWith('/')) {
+    return imageUrl
+  }
+  
+  // 如果是普通URL，直接返回
+  return imageUrl
 }
 
 // 联系卖家

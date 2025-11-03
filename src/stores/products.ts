@@ -238,21 +238,38 @@ export const useProductStore = defineStore('products', () => {
             
             if (imageFile instanceof File) {
               // 如果是File对象，直接使用
-              fileName = `${Date.now()}_${i}_${imageFile.name}`
+              fileName = `${Date.now()}_${i}_${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
               fileData = imageFile
-            } else if (typeof imageFile === 'string') {
-              // 如果是base64字符串，转换为File
+            } else if (typeof imageFile === 'string' && imageFile.startsWith('data:')) {
+              // 如果是base64数据URL，转换为Blob
               const response = await fetch(imageFile)
               const blob = await response.blob()
               fileName = `${Date.now()}_${i}.jpg`
               fileData = blob
             } else {
-              throw new Error(`不支持的图片格式: ${typeof imageFile}`)
+              console.warn(`跳过不支持的图片格式: ${typeof imageFile}`)
+              continue
             }
             
             const filePath = `product-images/${userStore.user.id}/${fileName}`
             
             console.log(`上传图片到: ${filePath}`)
+            
+            // 检查存储桶是否存在，如果不存在则创建
+            try {
+              const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets()
+              if (bucketsError) {
+                console.warn('获取存储桶列表失败:', bucketsError)
+              }
+              
+              const productImagesBucket = buckets?.find(b => b.name === 'product-images')
+              if (!productImagesBucket) {
+                console.warn('product-images存储桶不存在，将尝试创建')
+                // 这里可以添加创建存储桶的逻辑，但需要管理员权限
+              }
+            } catch (bucketError) {
+              console.warn('存储桶检查失败:', bucketError)
+            }
             
             // 上传到Supabase存储
             const { data: uploadData, error: uploadError } = await supabase.storage
@@ -264,6 +281,24 @@ export const useProductStore = defineStore('products', () => {
 
             if (uploadError) {
               console.error(`图片 ${i + 1} 上传失败:`, uploadError)
+              
+              // 如果存储桶不存在，使用备用方案：将图片转换为base64存储在数据库中
+              if (uploadError.message.includes('bucket') || uploadError.message.includes('not found')) {
+                console.warn('存储桶不存在，使用base64存储方案')
+                if (imageFile instanceof File) {
+                  const reader = new FileReader()
+                  const base64Promise = new Promise<string>((resolve) => {
+                    reader.onload = () => resolve(reader.result as string)
+                    reader.readAsDataURL(imageFile)
+                  })
+                  const base64Data = await base64Promise
+                  imageUrls.push(base64Data)
+                } else {
+                  imageUrls.push(imageFile as string)
+                }
+                continue
+              }
+              
               throw new Error(`图片上传失败: ${uploadError.message}`)
             }
 
