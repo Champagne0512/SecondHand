@@ -502,7 +502,7 @@ const previewImage = (imageUrl: string) => {
     gradientShift 4s ease-in-out infinite, 
     slideInLeft 1s ease-out 0.2s both,
     float 6s ease-in-out infinite 2s;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  text-shadow: none;
   letter-spacing: -0.03em;
   position: relative;
 }

@@ -23,7 +23,7 @@
                 </div>
               </div>
               <div class="banner-image">
-                <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop&auto=format" alt="校园二手交易平台" />
+                <img src="/src/assets/images/logo2.png" alt="校园二手交易平台" />
               </div>
             </div>
           </div>
@@ -803,26 +803,19 @@ onMounted(async () => {
 .banner-image img {
   max-width: 100%;
   height: auto;
-  border-radius: 20px;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.3),
-    0 0 30px rgba(255, 255, 255, 0.2);
-  animation: 
-    slideInRight 1s ease-out 0.9s both, 
-    float 6s ease-in-out infinite 2s,
-    pulse 3s ease-in-out infinite 3s;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+  transition: none;
   position: relative;
   transform-style: preserve-3d;
 }
 
 .banner-image img:hover {
-  transform: scale(1.08) rotate(3deg) rotateX(5deg) rotateY(5deg);
-  box-shadow: 
-    0 25px 80px rgba(0, 0, 0, 0.4),
-    0 0 40px rgba(255, 255, 255, 0.3);
-  animation: glow 2s ease-in-out infinite;
-  filter: brightness(1.02);
+  transform: none;
+  box-shadow: none;
+  animation: none;
+  filter: none;
 }
 
 .carousel-indicators {
