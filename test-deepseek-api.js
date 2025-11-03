@@ -1,8 +1,8 @@
-// 测试DeepSeek API连接
+// 测试AI API连接
 const testDeepSeekAPI = async () => {
-  console.log('测试DeepSeek API连接...')
+  console.log('测试AI API连接...')
   
-  // DeepSeek API端点
+  // AI API端点
   const apiUrl = 'https://api.deepseek.com/v1/chat/completions'
   
   // 测试请求数据
@@ -27,7 +27,7 @@ const testDeepSeekAPI = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_DEEPSEEK_API_KEY' // 需要替换为真实密钥
+        'Authorization': 'Bearer YOUR_AI_API_KEY' // 需要替换为真实密钥
       },
       body: JSON.stringify(testData)
     })

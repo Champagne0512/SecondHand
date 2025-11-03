@@ -6,7 +6,7 @@
 - 🔍 基于实际商品数据库提供准确信息
 - 💰 进行价格分析和市场对比
 - 🛡️ 提供专业的交易安全指导
-- 🤖 集成DeepSeek AI进行智能对话
+- 🤖 集成AI进行智能对话
 - 📊 实时查询商品、用户、交易数据
 
 ## 📋 前置要求
@@ -17,7 +17,7 @@
    - 端口：5678（默认）
 
 2. **API密钥**
-   - DeepSeek API密钥：`sk-98e0a077fdbe422585855c3b10f03986`
+   - AI API密钥：`sk-98e0a077fdbe422585855c3b10f03986`
    - Supabase数据库连接信息（已内置）
 
 3. **网络配置**
@@ -34,14 +34,14 @@
 4. 选择`campus-marketplace-ai-assistant-workflow.json`文件
 5. 点击"Import"确认导入
 
-### 第二步：配置DeepSeek API
+### 第二步：配置AI API
 
 1. 在n8n界面中，点击左侧的"Credentials"
 2. 点击"Add Credential"按钮
 3. 选择"OpenAI API"类型
 4. 填写配置信息：
    ```
-   Name: DeepSeek API
+   Name: AI API
    API Key: sk-98e0a077fdbe422585855c3b10f03986
    Base URL: https://api.deepseek.com/v1
    ```
@@ -96,7 +96,7 @@ const n8nWebhookUrl = 'http://localhost:5678/webhook/website-assistant'
 - **价格分析**：基于真实商品数据
 - **搜索推荐**：智能筛选和排序
 - **安全指导**：详细的交易安全建议
-- **通用对话**：DeepSeek AI智能回复
+- **通用对话**：AI智能回复
 
 ### 3. 数据驱动回复
 - 实时查询Supabase数据库
@@ -143,7 +143,7 @@ docker ps | grep n8n
 docker logs n8n-container
 ```
 
-### 2. DeepSeek API调用失败
+### 2. AI API调用失败
 - 检查API密钥是否正确
 - 确认账户余额充足
 - 验证网络连接

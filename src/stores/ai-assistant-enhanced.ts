@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-// 增强版AI助手store - 内置DeepSeek API模式
+// 增强版AI助手store - 内置AI API模式
 export const useAIAssistantEnhancedStore = defineStore('aiAssistantEnhanced', () => {
   // 状态管理
   const isLoading = ref(false)
@@ -31,10 +31,10 @@ export const useAIAssistantEnhancedStore = defineStore('aiAssistantEnhanced', ()
     searchQuery?: any
   }>({})
 
-  // AI配置 - 内置DeepSeek配置
+  // AI配置 - 内置AI配置
   const aiConfig = ref({
-    provider: 'deepseek', // 内置DeepSeek API
-    model: 'deepseek-chat', // DeepSeek模型
+    provider: 'ai', // 内置AI API
+    model: 'ai-chat', // AI模型
     maxTokens: 1000,
     temperature: 0.7,
     language: 'zh-CN'
@@ -215,7 +215,7 @@ ${JSON.stringify(transactionInfo, null, 2)}
       } else if (data.response) {
         return data.response
       } else if (data.choices && data.choices[0] && data.choices[0].message) {
-        // DeepSeek API直接返回的格式
+        // AI API直接返回的格式
         return data.choices[0].message.content
       } else if (typeof data === 'string') {
         return data
@@ -361,14 +361,14 @@ ${JSON.stringify(transactionInfo, null, 2)}
     provider?: string
     model?: string
   }) => {
-    // 内置模式，使用预设的DeepSeek配置
+    // 内置模式，使用预设的AI配置
     apiKey.value = 'sk-98e0a077fdbe422585855c3b10f03986'
     apiEndpoint.value = 'https://api.deepseek.com/v1/chat/completions'
-    aiConfig.value.provider = 'deepseek'
-    aiConfig.value.model = 'deepseek-chat'
+    aiConfig.value.provider = 'ai'
+    aiConfig.value.model = 'ai-chat'
     isConfigured.value = true
     error.value = null
-    console.log('AI助手已配置，使用DeepSeek API')
+    console.log('AI助手已配置，使用AI API')
   }
 
   const addMessage = (content: string, role: 'user' | 'assistant' | 'system' = 'user', metadata?: any) => {

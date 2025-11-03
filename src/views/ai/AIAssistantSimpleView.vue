@@ -69,7 +69,7 @@
                   v-model="userInput"
                   type="textarea"
                   :rows="3"
-                  placeholder="请输入您的问题，DeepSeek AI将为您提供帮助..."
+                  placeholder="请输入您的问题，AI将为您提供帮助..."
                   @keydown.enter.prevent="handleEnter"
                   class="message-input"
                 />
@@ -272,7 +272,7 @@ const messages = ref([
   {
     id: '1',
     type: 'ai',
-    content: '您好！我是基于DeepSeek的AI智能助手，可以帮助您解决校园二手交易平台的各种问题。请问有什么可以帮助您的吗？',
+    content: '您好！我是AI智能助手，可以帮助您解决校园二手交易平台的各种问题。请问有什么可以帮助您的吗？',
     timestamp: new Date()
   }
 ])
@@ -342,7 +342,7 @@ const sendMessage = async () => {
       timestamp: new Date()
     })
   } catch (error: any) {
-    console.error('DeepSeek AI回复失败:', error)
+    console.error('AI回复失败:', error)
     ElMessage.error('AI回复失败：' + error.message)
     messages.value.push({
       id: (Date.now() + 1).toString(),
@@ -395,9 +395,9 @@ const generateDescription = async () => {
     const response = await aiStore.sendMessage(prompt)
     generatedDescription.value = response.content
     
-    ElMessage.success('DeepSeek商品描述生成成功！')
+    ElMessage.success('商品描述生成成功！')
   } catch (error: any) {
-    ElMessage.error('DeepSeek生成失败：' + error.message)
+    ElMessage.error('生成失败：' + error.message)
   } finally {
     isGeneratingDesc.value = false
   }
@@ -430,9 +430,9 @@ const analyzePrice = async () => {
     const response = await aiStore.sendMessage(prompt)
     priceAnalysis.value = response.content
     
-    ElMessage.success('DeepSeek价格分析完成！')
+    ElMessage.success('价格分析完成！')
   } catch (error: any) {
-    ElMessage.error('DeepSeek分析失败：' + error.message)
+    ElMessage.error('分析失败：' + error.message)
   } finally {
     isAnalyzingPrice.value = false
   }
@@ -455,43 +455,79 @@ const formatTime = (date: Date) => {
 .ai-assistant-simple-view {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  animation: fadeInUp 0.8s ease-out;
 }
 
 .page-header {
   text-align: center;
-  padding: 60px 20px;
+  padding: 80px 20px 60px;
   color: white;
-  background: rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.header-content {
+  position: relative;
+  z-index: 2;
 }
 
 .header-content h1 {
-  font-size: 3rem;
-  margin-bottom: 10px;
-  font-weight: 700;
+  font-size: 3.5rem;
+  margin-bottom: 16px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fff 0%, #f0f4ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .header-content p {
-  font-size: 1.2rem;
-  opacity: 0.9;
-  margin-bottom: 20px;
+  font-size: 1.3rem;
+  opacity: 0.95;
+  margin-bottom: 32px;
+  font-weight: 300;
+  letter-spacing: 0.5px;
 }
 
 .ai-status {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: rgba(46, 213, 115, 0.2);
+  gap: 12px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, rgba(46, 213, 115, 0.2) 0%, rgba(46, 213, 115, 0.1) 100%);
   color: #2ed573;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 25px;
+  font-size: 15px;
+  font-weight: 600;
   border: 1px solid rgba(46, 213, 115, 0.3);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(46, 213, 115, 0.2);
+  transition: all 0.3s ease;
+}
+
+.ai-status:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(46, 213, 115, 0.3);
 }
 
 .ai-status-bar {
   max-width: 1200px;
-  margin: 0 auto 20px;
+  margin: 0 auto 30px;
   padding: 0 20px;
 }
 
@@ -509,28 +545,57 @@ const formatTime = (date: Date) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f0f4ff 100%);
+  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.card-header span {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2d3748;
 }
 
 .chat-container {
   display: flex;
   flex-direction: column;
   height: 500px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f0f4ff 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .chat-messages {
   flex: 1;
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  scroll-behavior: smooth;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.3);
+  border-radius: 3px;
 }
 
 .message {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  max-width: 80%;
+  gap: 16px;
+  max-width: 85%;
+  animation: messageSlideIn 0.3s ease-out;
 }
 
 .message.user {
@@ -539,16 +604,23 @@ const formatTime = (date: Date) => {
 }
 
 .message-avatar {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: white;
+  background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
   flex-shrink: 0;
+}
+
+.message-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .message.user .message-avatar {
@@ -561,48 +633,60 @@ const formatTime = (date: Date) => {
 }
 
 .message-bubble {
-  padding: 12px 16px;
-  border-radius: 18px;
-  font-size: 14px;
-  line-height: 1.5;
+  padding: 16px 20px;
+  border-radius: 20px;
+  font-size: 15px;
+  line-height: 1.6;
   word-wrap: break-word;
+  position: relative;
+  transition: all 0.3s ease;
 }
 
 .message.ai .message-bubble {
-  background: white;
-  color: #495057;
-  border: 1px solid #e9ecef;
-  border-bottom-left-radius: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-bottom-left-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
 }
 
 .message.user .message-bubble {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 8px;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.message-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .message-time {
   font-size: 12px;
-  color: #6c757d;
-  margin-top: 4px;
+  color: #718096;
+  margin-top: 6px;
+  font-weight: 500;
 }
 
 .message.user .message-time {
   text-align: right;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .loading-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 18px;
-  border-bottom-left-radius: 4px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  border-bottom-left-radius: 8px;
   width: fit-content;
-  color: #6c757d;
-  font-size: 14px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
 }
 
 .loading {
@@ -610,55 +694,58 @@ const formatTime = (date: Date) => {
 }
 
 .chat-input-area {
-  padding: 20px;
-  background: white;
-  border-top: 1px solid #f0f0f0;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
 }
 
 .input-container {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: flex-end;
 }
 
 .message-input {
   flex: 1;
-  padding: 12px 16px;
-  border: 1px solid #e9ecef;
-  border-radius: 20px;
+  padding: 16px;
+  border: 2px solid rgba(102, 126, 234, 0.1);
+  border-radius: 16px;
   resize: none;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.4;
-  max-height: 100px;
+  max-height: 120px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .message-input:focus {
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .send-button {
-  height: 44px;
-  padding: 0 20px;
+  height: 48px;
+  padding: 0 24px;
   border: none;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border-radius: 22px;
+  border-radius: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.3s ease;
   flex-shrink: 0;
 }
 
 .send-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
 }
 
 .send-button:disabled {
@@ -669,12 +756,26 @@ const formatTime = (date: Date) => {
 .quick-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .quick-prompt-btn {
   margin: 0;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  color: #667eea;
+  transition: all 0.3s ease;
+}
+
+.quick-prompt-btn:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .features-section {
@@ -684,6 +785,17 @@ const formatTime = (date: Date) => {
 .feature-card {
   height: 100%;
   margin-bottom: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
 }
 
 .feature-form {
@@ -702,6 +814,15 @@ const formatTime = (date: Date) => {
 .result-textarea {
   font-family: inherit;
   line-height: 1.6;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.result-textarea :deep(.el-textarea__inner) {
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .result-actions {
@@ -709,6 +830,7 @@ const formatTime = (date: Date) => {
   text-align: right;
 }
 
+/* 动画效果 */
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -718,9 +840,77 @@ const formatTime = (date: Date) => {
   }
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 表单元素优化 */
+:deep(.el-form-item__label) {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 14px;
+}
+
+:deep(.el-input__inner),
+:deep(.el-textarea__inner),
+:deep(.el-select .el-input__inner) {
+  border-radius: 12px;
+  border: 2px solid rgba(102, 126, 234, 0.1);
+  padding: 12px 16px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+:deep(.el-input__inner:focus),
+:deep(.el-textarea__inner:focus),
+:deep(.el-select .el-input__inner:focus) {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+:deep(.el-button) {
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-button--primary) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+:deep(.el-button--primary:hover:not(:disabled)) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* 响应式设计 */
 @media (max-width: 768px) {
   .header-content h1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
+  }
+  
+  .header-content p {
+    font-size: 1.1rem;
   }
   
   .input-container {
@@ -733,6 +923,46 @@ const formatTime = (date: Date) => {
   
   .quick-actions {
     justify-content: center;
+    gap: 8px;
+  }
+  
+  .message {
+    max-width: 95%;
+    gap: 12px;
+  }
+  
+  .message-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  
+  .message-bubble {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content h1 {
+    font-size: 2rem;
+  }
+  
+  .page-header {
+    padding: 60px 20px 40px;
+  }
+  
+  .main-content {
+    padding: 0 16px 30px;
+  }
+  
+  .message {
+    max-width: 100%;
+  }
+  
+  .message-bubble {
+    font-size: 13px;
+    padding: 10px 14px;
   }
 }
 </style>

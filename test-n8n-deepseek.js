@@ -1,8 +1,8 @@
-// 测试n8n工作流与DeepSeek模型的集成
+// 测试n8n工作流与AI模型的集成
 const testN8nDeepSeek = async () => {
   const workflowUrl = 'https://cchencchen0512.app.n8n.cloud/webhook/02baeca7-10b5-4800-a9e4-7a85c857c10e/chat'
   
-  console.log('测试n8n工作流与DeepSeek模型...')
+  console.log('测试n8n工作流与AI模型...')
   console.log('工作流URL:', workflowUrl)
   
   // 测试不同的请求格式

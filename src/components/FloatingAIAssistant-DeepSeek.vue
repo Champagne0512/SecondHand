@@ -3,13 +3,14 @@
     <!-- 悬浮AI图标 -->
     <div 
       class="ai-float-button"
-      :class="{ 'active': isExpanded }"
+      :class="{ 'active': isExpanded, 'pulsing': hasNotification }"
       @click="toggleAI"
     >
       <div class="ai-icon">
         <span v-if="!isLoading">🤖</span>
         <span v-else class="loading">💭</span>
       </div>
+      <div class="pulse-ring" v-if="isExpanded"></div>
       <div class="notification-dot" v-if="hasNotification"></div>
     </div>
 
@@ -20,7 +21,7 @@
         <div class="ai-info">
           <div class="ai-avatar">🤖</div>
           <div class="ai-details">
-            <h3>DeepSeek助手</h3>
+            <h3>AI助手</h3>
             <p :class="statusClass">{{ statusText }}</p>
           </div>
         </div>
@@ -243,15 +244,15 @@ const messages = ref([
   {
     id: 1,
     type: 'ai',
-    content: '你好！我是DeepSeek驱动的专业网站技术助手，有什么技术问题可以帮助你解决？',
+    content: '你好！我是AI智能助手，有什么技术问题可以帮助你解决？',
     timestamp: new Date()
   }
 ])
 
 // 计算属性
 const statusText = computed(() => {
-  if (isLoading.value) return 'DeepSeek思考中...'
-  return 'DeepSeek在线'
+  if (isLoading.value) return 'AI思考中...'
+  return 'AI在线'
 })
 
 const statusClass = computed(() => ({
@@ -443,61 +444,84 @@ onMounted(() => {
 }
 
 .ai-float-button {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-  box-shadow: 0 4px 20px rgba(30, 60, 114, 0.4);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .ai-float-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 30px rgba(30, 60, 114, 0.6);
+  transform: scale(1.15);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.6);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .ai-float-button.active {
-  transform: scale(0.9);
+  transform: scale(0.85);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+}
+
+.ai-float-button.pulsing {
+  animation: gentle-pulse 2s infinite;
 }
 
 .ai-icon {
-  font-size: 24px;
-  animation: bounce 2s infinite;
+  font-size: 28px;
+  animation: gentle-bounce 3s infinite;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .loading {
-  animation: pulse 1s infinite;
+  animation: gentle-pulse 1.5s infinite;
+}
+
+.pulse-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid #667eea;
+  animation: pulse-ring 2s infinite;
 }
 
 .notification-dot {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 12px;
-  height: 12px;
-  background: #ff4757;
+  top: 6px;
+  right: 6px;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);
   border-radius: 50%;
-  animation: pulse 1s infinite;
+  animation: gentle-pulse 2s infinite;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);
 }
 
 .ai-panel {
   position: absolute;
   bottom: 80px;
   right: 0;
-  width: 380px;
-  height: 500px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  height: 550px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: slideUp 0.3s ease;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .ai-panel.minimized {
@@ -505,12 +529,13 @@ onMounted(() => {
 }
 
 .panel-header {
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  backdrop-filter: blur(10px);
 }
 
 .ai-info {
@@ -577,17 +602,19 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 100%);
 }
 
 .messages-container {
   flex: 1;
-  padding: 16px;
+  padding: 20px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 350px;
+  gap: 16px;
+  max-height: 380px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .message {
@@ -605,23 +632,31 @@ onMounted(() => {
 }
 
 .message-bubble {
-  max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 18px;
+  max-width: 75%;
+  padding: 16px 20px;
+  border-radius: 20px;
   position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
 }
 
 .message.user .message-bubble {
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 6px;
 }
 
 .message.ai .message-bubble {
-  background: white;
-  color: #495057;
-  border: 1px solid #e9ecef;
-  border-bottom-left-radius: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  color: #2c3e50;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom-left-radius: 6px;
+}
+
+.message-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 .message-content {
@@ -670,92 +705,108 @@ onMounted(() => {
 }
 
 .input-area {
-  background: white;
-  border-top: 1px solid #e9ecef;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .input-container {
-  padding: 12px;
+  padding: 16px 20px;
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: flex-end;
 }
 
 .message-input {
   flex: 1;
-  padding: 12px 16px;
-  border: 1px solid #e9ecef;
+  padding: 16px 20px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
   border-radius: 24px;
   resize: none;
   font-family: inherit;
   font-size: 14px;
-  line-height: 1.4;
-  max-height: 100px;
+  line-height: 1.5;
+  max-height: 120px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .message-input:focus {
-  border-color: #1e3c72;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: white;
 }
 
 .send-btn {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border: none;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  transition: all 0.2s ease;
+  font-size: 18px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .send-btn:hover:not(:disabled) {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(30, 60, 114, 0.4);
+  transform: scale(1.15);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
 }
 
 .send-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  transform: scale(0.95);
 }
 
-@keyframes bounce {
+@keyframes gentle-bounce {
   0%, 20%, 50%, 80%, 100% {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   40% {
-    transform: translateY(-10px);
+    transform: translateY(-8px) scale(1.05);
   }
   60% {
-    transform: translateY(-5px);
+    transform: translateY(-4px) scale(1.02);
   }
 }
 
-@keyframes pulse {
-  0% {
+@keyframes gentle-pulse {
+  0%, 100% {
     transform: scale(1);
+    opacity: 1;
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.08);
+    opacity: 0.8;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
   }
   100% {
-    transform: scale(1);
+    transform: scale(1.5);
+    opacity: 0;
   }
 }
 
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -764,7 +815,7 @@ onMounted(() => {
     transform: translateY(0);
   }
   30% {
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
 }
 

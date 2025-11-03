@@ -3,13 +3,15 @@
     <!-- 悬浮AI图标 -->
     <div 
       class="ai-float-button"
-      :class="{ 'active': isExpanded }"
+      :class="{ 'active': isExpanded, 'pulsing': hasNotification }"
       @click="toggleAI"
+      title="点击打开AI助手"
     >
       <div class="ai-icon">
         <span v-if="!isLoading">🤖</span>
         <span v-else class="loading">💭</span>
       </div>
+      <div class="pulse-ring" v-if="isExpanded"></div>
       <div class="notification-dot" v-if="hasNotification"></div>
     </div>
 
@@ -690,26 +692,33 @@ onUnmounted(() => {
 }
 
 .ai-float-button {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .ai-float-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
+  transform: scale(1.15);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.6);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .ai-float-button.active {
-  transform: scale(0.9);
+  transform: scale(0.85);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+}
+
+.ai-float-button.pulsing {
+  animation: gentle-pulse 2s infinite;
 }
 
 .ai-icon {

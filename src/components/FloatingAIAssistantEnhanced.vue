@@ -61,7 +61,15 @@
             :class="message.type"
           >
             <div class="message-bubble">
-              <div class="message-content">{{ message.content }}</div>
+              <div 
+                class="message-content"
+                v-if="message.isFormatted"
+                v-html="message.content"
+              ></div>
+              <div 
+                class="message-content"
+                v-else
+              >{{ message.content }}</div>
               <div class="message-time">{{ formatTime(message.timestamp) }}</div>
             </div>
           </div>
@@ -132,12 +140,21 @@ const isTyping = ref(false)
 const isVoiceInput = ref(false)
 const hasNotification = ref(false)
 const userInput = ref('')
-const messages = ref([
+interface Message {
+  id: number
+  type: 'user' | 'ai'
+  content: string
+  timestamp: Date
+  isFormatted?: boolean
+}
+
+const messages = ref<Message[]>([
   {
     id: 1,
     type: 'ai',
     content: '你好！我是AI智能助手，有什么可以帮助你的吗？',
-    timestamp: new Date()
+    timestamp: new Date(),
+    isFormatted: true
   }
 ])
 
@@ -336,12 +353,53 @@ const sendMessage = async () => {
   }
 }
 
+const formatAIMessage = (content: string): string => {
+  // 自动格式化AI回复内容
+  let formatted = content
+  
+  // 1. 处理标题和强调
+  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>')
+  
+  // 2. 处理代码块
+  formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+  formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>')
+  
+  // 3. 处理列表
+  formatted = formatted.replace(/^\s*[-•]\s+(.+)$/gm, '<li>$1</li>')
+  formatted = formatted.replace(/^\s*\d+\.\s+(.+)$/gm, '<li>$1</li>')
+  
+  // 4. 处理引用块
+  formatted = formatted.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>')
+  
+  // 5. 处理段落和换行
+  formatted = formatted.replace(/\n\n+/g, '</div><div class=\"section\">')
+  formatted = formatted.replace(/\n/g, '<br>')
+  
+  // 6. 添加特殊样式类
+  if (formatted.includes('🚨') || formatted.includes('错误') || formatted.includes('失败')) {
+    formatted = `<div class=\"warning-box\">${formatted}</div>`
+  } else if (formatted.includes('✅') || formatted.includes('成功') || formatted.includes('完成')) {
+    formatted = `<div class=\"success-box\">${formatted}</div>`
+  } else if (formatted.includes('💡') || formatted.includes('提示') || formatted.includes('建议')) {
+    formatted = `<div class=\"info-box\">${formatted}</div>`
+  }
+  
+  // 7. 包装最终内容
+  if (!formatted.includes('<div class=\"section\">')) {
+    formatted = `<div class=\"section\">${formatted}</div>`
+  }
+  
+  return formatted
+}
+
 const addMessage = (content: string, type: 'user' | 'ai') => {
   const newMessage = {
     id: Date.now(),
     type,
-    content,
-    timestamp: new Date()
+    content: type === 'ai' ? formatAIMessage(content) : content,
+    timestamp: new Date(),
+    isFormatted: type === 'ai'
   }
   messages.value.push(newMessage)
   scrollToBottom()
@@ -496,31 +554,39 @@ onUnmounted(() => {
 }
 
 .ai-float-button {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .ai-float-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
+  transform: scale(1.15);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.6);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .ai-float-button.active {
-  transform: scale(0.9);
+  transform: scale(0.85);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+}
+
+.ai-float-button.pulsing {
+  animation: gentle-pulse 2s infinite;
 }
 
 .ai-icon {
-  font-size: 24px;
-  animation: bounce 2s infinite;
+  font-size: 28px;
+  animation: gentle-bounce 3s infinite;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .pulse-ring {
@@ -535,34 +601,37 @@ onUnmounted(() => {
 }
 
 .loading {
-  animation: pulse 1s infinite;
+  animation: gentle-pulse 1.5s infinite;
 }
 
 .notification-dot {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 12px;
-  height: 12px;
-  background: #ff4757;
+  top: 6px;
+  right: 6px;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);
   border-radius: 50%;
-  animation: pulse 1s infinite;
+  animation: gentle-pulse 2s infinite;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);
 }
 
 .ai-panel {
   position: absolute;
   bottom: 80px;
   right: 0;
-  width: 380px;
-  height: 600px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  height: 650px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: slideUp 0.3s ease;
-  border: 1px solid #e9ecef;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .ai-panel.minimized {
@@ -570,12 +639,13 @@ onUnmounted(() => {
 }
 
 .panel-header {
-  padding: 16px 20px;
+  padding: 20px 24px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  backdrop-filter: blur(10px);
 }
 
 .ai-info {
@@ -643,36 +713,39 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 100%);
 }
 
 .quick-actions {
-  padding: 12px;
+  padding: 16px 20px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  background: white;
-  border-bottom: 1px solid #e9ecef;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .quick-action-btn {
-  padding: 8px 4px;
-  border: 1px solid #e9ecef;
-  background: white;
-  border-radius: 8px;
+  padding: 12px 8px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  transition: all 0.2s ease;
+  gap: 6px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 12px;
+  backdrop-filter: blur(10px);
 }
 
 .quick-action-btn:hover {
-  background: #f8f9fa;
+  background: rgba(102, 126, 234, 0.1);
   border-color: #667eea;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 
 .action-icon {
@@ -686,11 +759,13 @@ onUnmounted(() => {
 
 .messages-container {
   flex: 1;
-  padding: 16px;
+  padding: 20px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .message {
@@ -706,29 +781,274 @@ onUnmounted(() => {
 }
 
 .message-bubble {
-  max-width: 100%;
-  padding: 12px 16px;
-  border-radius: 18px;
+  max-width: 85%;
+  padding: 16px 20px;
+  border-radius: 20px;
   position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
 }
 
 .message.user .message-bubble {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 6px;
 }
 
 .message.ai .message-bubble {
-  background: white;
-  color: #495057;
-  border: 1px solid #e9ecef;
-  border-bottom-left-radius: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  color: #2c3e50;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom-left-radius: 6px;
+}
+
+.message-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 .message-content {
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.message.ai .message-content {
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.message.ai .message-content strong {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.message.ai .message-content em {
+  font-style: italic;
+  color: #7f8c8d;
+}
+
+.message.ai .message-content ul,
+.message.ai .message-content ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.message.ai .message-content li {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+.message.ai .message-content code {
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #e74c3c;
+  border: 1px solid #e9ecef;
+}
+
+.message.ai .message-content blockquote {
+  border-left: 4px solid #667eea;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+.message.ai .message-content .highlight {
+  background: linear-gradient(120deg, #667eea20 0%, #764ba220 100%);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  border-left: 3px solid #667eea;
+}
+
+.message.ai .message-content .section {
+  margin: 12px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.message.ai .message-content .section:last-child {
+  border-bottom: none;
+}
+
+/* 增强的AI回复格式化 */
+.message.ai .message-content {
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+.message.ai .message-content strong {
+  font-weight: 600;
+  color: #2c3e50;
+  background: linear-gradient(120deg, #667eea10 0%, #764ba210 100%);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.message.ai .message-content em {
+  font-style: italic;
+  color: #7f8c8d;
+  background: #f8f9fa;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+.message.ai .message-content ul,
+.message.ai .message-content ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.message.ai .message-content li {
+  margin: 4px 0;
+  line-height: 1.5;
+  position: relative;
+}
+
+.message.ai .message-content li:before {
+  content: '•';
+  color: #667eea;
+  font-weight: bold;
+  position: absolute;
+  left: -15px;
+}
+
+.message.ai .message-content ol li:before {
+  content: counter(item) '.';
+  counter-increment: item;
+}
+
+.message.ai .message-content code {
+  background: #f1f3f4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #e74c3c;
+  border: 1px solid #e9ecef;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+}
+
+.message.ai .message-content pre {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.message.ai .message-content pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #495057;
+}
+
+.message.ai .message-content blockquote {
+  border-left: 4px solid #667eea;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #7f8c8d;
+  font-style: italic;
+  background: linear-gradient(120deg, #667eea05 0%, #764ba205 100%);
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+}
+
+.message.ai .message-content .highlight {
+  background: linear-gradient(120deg, #667eea20 0%, #764ba220 100%);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  border-left: 3px solid #667eea;
+}
+
+.message.ai .message-content .section {
+  margin: 12px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.message.ai .message-content .section:last-child {
+  border-bottom: none;
+}
+
+.message.ai .message-content .info-box {
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-left: 4px solid #2196f3;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.message.ai .message-content .warning-box {
+  background: #fff3e0;
+  border: 1px solid #ffcc80;
+  border-left: 4px solid #ff9800;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.message.ai .message-content .success-box {
+  background: #e8f5e8;
+  border: 1px solid #c8e6c9;
+  border-left: 4px solid #4caf50;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.message.ai .message-content .table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.message.ai .message-content .table th,
+.message.ai .message-content .table td {
+  border: 1px solid #e9ecef;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.message.ai .message-content .table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+}
+
+.message.ai .message-content .table tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .message.ai .message-content {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  
+  .message.ai .message-content pre {
+    font-size: 11px;
+    padding: 8px;
+  }
+  
+  .message.ai .message-content .table {
+    font-size: 11px;
+  }
 }
 
 .message-time {
@@ -778,68 +1098,76 @@ onUnmounted(() => {
 }
 
 .input-area {
-  background: white;
-  border-top: 1px solid #e9ecef;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .input-toolbar {
-  padding: 8px 12px;
+  padding: 12px 16px;
   display: flex;
-  gap: 12px;
-  border-bottom: 1px solid #f8f9fa;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .toolbar-btn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border: none;
-  background: none;
+  background: rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  transition: all 0.2s ease;
+  font-size: 18px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
 }
 
 .toolbar-btn:hover {
-  background: #f8f9fa;
+  background: rgba(102, 126, 234, 0.1);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 
 .toolbar-btn.active {
-  background: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .input-container {
-  padding: 12px;
+  padding: 16px 20px;
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: flex-end;
 }
 
 .message-input {
   flex: 1;
-  padding: 12px 16px;
-  border: 1px solid #e9ecef;
+  padding: 16px 20px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
   border-radius: 24px;
   resize: none;
   font-family: inherit;
   font-size: 14px;
-  line-height: 1.4;
-  max-height: 100px;
+  line-height: 1.5;
+  max-height: 120px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .message-input:focus {
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: white;
 }
 
 .send-btn {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border: none;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -848,41 +1176,42 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  transition: all 0.2s ease;
+  font-size: 18px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .send-btn:hover:not(:disabled) {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transform: scale(1.15);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
 }
 
 .send-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  transform: scale(0.95);
 }
 
-@keyframes bounce {
+@keyframes gentle-bounce {
   0%, 20%, 50%, 80%, 100% {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   40% {
-    transform: translateY(-10px);
+    transform: translateY(-8px) scale(1.05);
   }
   60% {
-    transform: translateY(-5px);
+    transform: translateY(-4px) scale(1.02);
   }
 }
 
-@keyframes pulse {
-  0% {
+@keyframes gentle-pulse {
+  0%, 100% {
     transform: scale(1);
+    opacity: 1;
   }
   50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
+    transform: scale(1.08);
+    opacity: 0.8;
   }
 }
 
@@ -900,11 +1229,11 @@ onUnmounted(() => {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -913,7 +1242,7 @@ onUnmounted(() => {
     transform: translateY(0);
   }
   30% {
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
 }
 

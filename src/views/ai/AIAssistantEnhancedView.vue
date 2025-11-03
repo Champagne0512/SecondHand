@@ -30,7 +30,7 @@
       <el-alert
         title="AI智能助手已激活"
         type="success"
-        description="正在使用DeepSeek AI为您提供智能服务"
+        description="AI助手已准备就绪，为您提供智能化的二手交易服务"
         show-icon
         :closable="false"
       />
@@ -1373,7 +1373,7 @@ const formatTime = (date: Date) => {
 onMounted(() => {
   // 内置AI模式，自动初始化
   aiStore.configureAI()
-  ElMessage.success('🤖 DeepSeek AI助手已准备就绪！')
+  ElMessage.success('🤖 AI助手已准备就绪！')
 })
 </script>
 

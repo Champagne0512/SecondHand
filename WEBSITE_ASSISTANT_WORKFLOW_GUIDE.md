@@ -1,7 +1,7 @@
 # 网站助手AI工作流使用说明
 
 ## 概述
-本文档详细说明如何设置和使用优化后的网站助手AI工作流。该工作流基于n8n平台，集成了DeepSeek AI，为校园二手交易平台提供专业、有针对性的技术支持。
+本文档详细说明如何设置和使用优化后的网站助手AI工作流。该工作流基于n8n平台，集成了AI，为校园二手交易平台提供专业、有针对性的技术支持。
 
 ## 文件说明
 - `website-assistant-optimized-workflow.json` - 主要的工作流配置文件
@@ -110,7 +110,7 @@ POST http://localhost:5678/webhook/website-assistant
 ### 2. AI API调用失败
 **问题**: AI未返回有效响应
 **解决方案**:
-- 检查DeepSeek API密钥是否正确
+- 检查AI API密钥是否正确
 - 验证网络连接
 - 查看n8n执行日志
 
@@ -118,18 +118,18 @@ POST http://localhost:5678/webhook/website-assistant
 **问题**: 响应不是期望的JSON格式
 **解决方案**:
 - 检查"Format Response"节点配置
-- 验证DeepSeek API返回的数据结构
+- 验证AI API返回的数据结构
 
 ## 自定义配置
 
 ### 修改AI提示词
-在工作流的"DeepSeek API Call"节点中，可以修改系统提示词来调整AI助手的行为。
+在工作流的"AI API Call"节点中，可以修改系统提示词来调整AI助手的行为。
 
 ### 更改Webhook路径
 在工作流的"Webhook"节点中，可以修改"path"参数来更改Webhook路径。
 
 ### 调整AI参数
-在工作流的"DeepSeek API Call"节点中，可以调整以下参数：
+在工作流的"AI API Call"节点中，可以调整以下参数：
 - temperature: 控制回复的随机性(0-1)
 - max_tokens: 最大回复长度
 - top_p: 控制回复的多样性(0-1)

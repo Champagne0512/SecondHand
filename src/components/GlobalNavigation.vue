@@ -10,55 +10,82 @@
             <el-icon><ShoppingBag /></el-icon>
           </div>
           <span class="logo-text">校园二手交易</span>
+          <!-- 左侧装饰元素 -->
+          <div class="nav-decoration left-decoration">
+            <div class="decoration-dot"></div>
+            <div class="decoration-line"></div>
+          </div>
         </div>
 
-        <!-- 主导航菜单 -->
+        <!-- 主导航菜单 - 重新设计为直观的图标导航 -->
         <nav class="main-menu">
-          <el-menu 
-            :default-active="activeMenu" 
-            mode="horizontal" 
-            class="nav-menu"
-            @select="handleMenuSelect"
-          >
-            <el-menu-item index="/">
-              <el-icon><House /></el-icon>
-              首页
-            </el-menu-item>
-            <el-menu-item index="/products">
-              <el-icon><Goods /></el-icon>
-              商品市场
-            </el-menu-item>
-            <el-menu-item index="/campus">
-              <el-icon><School /></el-icon>
-              校园生活
-            </el-menu-item>
-            <el-menu-item index="/ai-assistant">
-              <el-icon><Cpu /></el-icon>
-              AI助手
-            </el-menu-item>
-            <el-sub-menu index="user">
-              <template #title>
+          <div class="nav-menu-grid">
+            <div 
+              class="nav-item" 
+              :class="{ active: activeMenu === '/' }"
+              @click="$router.push('/')"
+            >
+              <div class="nav-icon">
+                <el-icon><House /></el-icon>
+              </div>
+              <span class="nav-label">首页</span>
+            </div>
+            
+            <div 
+              class="nav-item" 
+              :class="{ active: activeMenu === '/products' }"
+              @click="$router.push('/products')"
+            >
+              <div class="nav-icon">
+                <el-icon><Goods /></el-icon>
+              </div>
+              <span class="nav-label">商品市场</span>
+            </div>
+            
+            <div 
+              class="nav-item" 
+              :class="{ active: activeMenu === '/campus' }"
+              @click="$router.push('/campus')"
+            >
+              <div class="nav-icon">
+                <el-icon><School /></el-icon>
+              </div>
+              <span class="nav-label">校园生活</span>
+            </div>
+            
+            <div 
+              class="nav-item" 
+              :class="{ active: activeMenu === '/ai-assistant' }"
+              @click="$router.push('/ai-assistant')"
+            >
+              <div class="nav-icon">
+                <el-icon><Cpu /></el-icon>
+              </div>
+              <span class="nav-label">AI助手</span>
+            </div>
+            
+            <!-- 个人中心直接显示主要功能入口 -->
+            <div 
+              class="nav-item" 
+              :class="{ active: activeMenu === 'user' }"
+              @click="handleUserNavigation"
+            >
+              <div class="nav-icon">
                 <el-icon><User /></el-icon>
-                个人中心
-              </template>
-              <el-menu-item index="/profile">个人信息</el-menu-item>
-              <el-menu-item index="/messages">消息中心</el-menu-item>
-              <el-menu-item index="/favorites">我的收藏</el-menu-item>
-              <!-- 管理员入口 - 仅对管理员显示 -->
-              <el-menu-item 
-                v-if="userStore.isAdmin" 
-                index="/admin"
-                class="admin-menu-item"
-              >
-                <el-icon><Setting /></el-icon>
-                管理员后台
-              </el-menu-item>
-            </el-sub-menu>
-          </el-menu>
+              </div>
+              <span class="nav-label">个人中心</span>
+            </div>
+          </div>
         </nav>
 
         <!-- 搜索和用户操作区域 -->
         <div class="nav-actions">
+          <!-- 右侧装饰元素 -->
+          <div class="nav-decoration right-decoration">
+            <div class="decoration-line"></div>
+            <div class="decoration-dot"></div>
+          </div>
+          
           <!-- 搜索框 -->
           <div class="search-box">
             <el-input
@@ -225,9 +252,15 @@ const showBreadcrumb = computed(() => {
     return items
   })
 
-// 菜单选择处理
-const handleMenuSelect = (index: string) => {
-  router.push(index)
+// 用户导航处理
+const handleUserNavigation = () => {
+  if (userStore.isLoggedIn) {
+    // 如果已登录，直接跳转到个人中心
+    router.push('/profile')
+  } else {
+    // 如果未登录，跳转到登录页面
+    router.push('/login')
+  }
 }
 
 // 搜索处理
@@ -281,11 +314,12 @@ watch(() => route.path, () => {
 .nav-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 64px;
+  position: relative;
 }
 
 /* Logo区域 - 重新设计 */
@@ -299,6 +333,110 @@ watch(() => route.path, () => {
 
 .logo-section:hover {
   transform: scale(1.08);
+}
+
+/* 导航装饰元素 */
+.nav-decoration {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.nav-decoration:hover {
+  opacity: 0.9;
+}
+
+.left-decoration {
+  left: -60px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.right-decoration {
+  right: -60px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.decoration-dot {
+  width: 4px;
+  height: 4px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.decoration-line {
+  width: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 1px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* 导航装饰元素 */
+.nav-decoration {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.nav-decoration:hover {
+  opacity: 0.9;
+}
+
+.left-decoration {
+  left: -60px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.right-decoration {
+  right: -60px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.decoration-dot {
+  width: 4px;
+  height: 4px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.decoration-line {
+  width: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 1px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
 }
 
 .logo-icon {
@@ -331,60 +469,87 @@ watch(() => route.path, () => {
   min-width: 180px; /* 确保有足够的最小宽度 */
 }
 
-/* 主导航菜单 */
+/* 主导航菜单 - 优化为更协调的设计 */
 .main-menu {
   flex: 1;
   display: flex;
   justify-content: center;
 }
 
-.nav-menu {
-  border: none;
+.nav-menu-grid {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   background: transparent;
+  border-radius: 12px;
+  padding: 4px;
+  position: relative;
 }
 
-.nav-menu .el-menu-item,
-.nav-menu .el-sub-menu__title {
-  height: 64px;
-  line-height: 64px;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-  font-weight: 600;
-  font-size: 16px; /* 增大导航菜单字体 */
-  color: #606266;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.nav-menu .el-menu-item:hover,
-.nav-menu .el-sub-menu__title:hover {
-  background: rgba(64, 158, 255, 0.1);
-  border-bottom-color: #409eff;
-  color: #409eff;
-}
-
-.nav-menu .el-menu-item.is-active,
-.nav-menu .el-sub-menu.is-active .el-sub-menu__title {
-  background: rgba(64, 158, 255, 0.1);
-  border-bottom-color: #409eff;
-  color: #409eff;
-}
-
-/* 管理员菜单项特殊样式 */
-.admin-menu-item {
-  background: linear-gradient(45deg, #f56c6c, #e6a23c) !important;
-  color: white !important;
+.nav-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
   border-radius: 8px;
-  margin: 4px 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 85px;
+  position: relative;
+  background: transparent;
+  border: none;
+  gap: 6px;
 }
 
-.admin-menu-item:hover {
-  background: linear-gradient(45deg, #f78989, #e8b86c) !important;
+.nav-item:hover {
+  background: rgba(102, 126, 234, 0.06);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
 }
 
-.admin-menu-item .el-icon {
-  color: white !important;
+.nav-item.active {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: #667eea;
+  border-radius: 1px;
+}
+
+.nav-icon {
+  font-size: 18px;
+  color: #606266;
+  transition: all 0.3s ease;
+}
+
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon {
+  color: #667eea;
+  transform: scale(1.05);
+}
+
+.nav-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #606266;
+  transition: all 0.3s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.nav-item:hover .nav-label,
+.nav-item.active .nav-label {
+  color: #667eea;
+  font-weight: 600;
 }
 
 /* 导航操作区域 */
@@ -488,13 +653,49 @@ watch(() => route.path, () => {
   font-weight: 500;
 }
 
-/* 响应式设计 */
+/* 响应式设计 - 优化为更协调的布局 */
+@media (max-width: 1200px) {
+  .nav-container {
+    padding: 0 16px;
+  }
+  
+  .nav-item {
+    padding: 10px 16px;
+    min-width: 75px;
+  }
+  
+  .nav-icon {
+    font-size: 16px;
+  }
+  
+  .nav-label {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .nav-item {
+    padding: 10px 14px;
+    min-width: 70px;
+  }
+  
+  .logo-text {
+    font-size: 24px;
+    min-width: 140px;
+  }
+  
+  .logo-icon {
+    padding: 8px;
+    font-size: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .nav-container {
     flex-direction: column;
     height: auto;
-    padding: 12px 20px;
-    gap: 12px;
+    padding: 12px 16px;
+    gap: 16px;
   }
 
   .main-menu {
@@ -502,15 +703,30 @@ watch(() => route.path, () => {
     width: 100%;
   }
 
-  .nav-menu {
+  .nav-menu-grid {
     width: 100%;
+    justify-content: space-between;
+    gap: 1px;
+    padding: 6px;
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 10px;
   }
 
-  .nav-menu .el-menu-item,
-  .nav-menu .el-sub-menu__title {
-    height: 48px;
-    line-height: 48px;
-    font-size: 14px;
+  .nav-item {
+    flex: 1;
+    min-width: auto;
+    padding: 10px 8px;
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .nav-icon {
+    font-size: 16px;
+  }
+
+  .nav-label {
+    font-size: 12px;
+    line-height: 1.2;
   }
 
   .nav-actions {
@@ -526,6 +742,61 @@ watch(() => route.path, () => {
 
   .user-dropdown .username {
     display: none;
+  }
+  
+  .logo-text {
+    font-size: 22px;
+    min-width: 130px;
+  }
+  
+  .logo-icon {
+    padding: 6px;
+    font-size: 18px;
+  }
+  
+  /* 移动端隐藏装饰元素 */
+  .nav-decoration {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-container {
+    padding: 10px 12px;
+    gap: 14px;
+  }
+  
+  .nav-menu-grid {
+    padding: 4px;
+  }
+  
+  .nav-item {
+    padding: 8px 6px;
+    flex-direction: row;
+    gap: 3px;
+  }
+  
+  .nav-icon {
+    font-size: 14px;
+  }
+  
+  .nav-label {
+    font-size: 11px;
+  }
+  
+  .logo-text {
+    font-size: 20px;
+    min-width: 120px;
+  }
+  
+  .search-box {
+    max-width: 160px;
+  }
+  
+  .publish-btn,
+  .login-btn {
+    font-size: 12px;
+    padding: 6px 12px;
   }
 }
 </style>
