@@ -35,90 +35,48 @@
         </div>
       </section>
 
-      <!-- 优化后的三栏主要内容区域 -->
+      <!-- 优化后的主要内容区域 - 两栏布局 -->
       <section class="main-content-section">
         <div class="container">
-          <!-- 新增特色功能展示区 -->
-          <div class="feature-section">
-            <div class="feature-grid">
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <el-icon size="48"><ShoppingCart /></el-icon>
-                </div>
-                <h3 class="feature-title">海量商品</h3>
-                <p class="feature-desc">覆盖校园各类二手物品，满足不同需求</p>
-              </div>
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <el-icon size="48"><Lock /></el-icon>
-                </div>
-                <h3 class="feature-title">安全保障</h3>
-                <p class="feature-desc">实名认证交易，确保交易安全可靠</p>
-              </div>
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <el-icon size="48"><Lightning /></el-icon>
-                </div>
-                <h3 class="feature-title">快速交易</h3>
-                <p class="feature-desc">简单发布流程，快速完成交易</p>
-              </div>
-              <div class="feature-item">
-                <div class="feature-icon">
-                  <el-icon size="48"><MagicStick /></el-icon>
-                </div>
-                <h3 class="feature-title">AI助手</h3>
-                <p class="feature-desc">智能推荐，帮你找到心仪商品</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="three-column-layout">
-            <!-- 左侧：常用功能入口 -->
-            <aside class="left-sidebar">
-              <div class="sidebar-card">
-                <h3 class="sidebar-title">常用功能</h3>
-                <div class="quick-actions">
-                  <div 
-                    class="quick-action-item" 
-                    v-for="action in quickActions" 
-                    :key="action.id"
-                    @click="handleQuickAction(action)"
-                  >
-                    <div class="action-icon">
-                      <el-icon :size="28">
-                        <component :is="action.icon" />
-                      </el-icon>
-                    </div>
-                    <div class="action-info">
-                      <h4>{{ action.title }}</h4>
-                      <p>{{ action.description }}</p>
-                    </div>
+          <div class="two-column-layout">
+            <!-- 左侧：核心功能区域 -->
+            <main class="main-content">
+              <!-- 智能搜索栏 -->
+              <div class="search-section">
+                <div class="search-card">
+                  <h3 class="search-title">快速找到心仪商品</h3>
+                  <div class="search-input-group">
+                    <el-input
+                      v-model="searchKeyword"
+                      placeholder="搜索商品、用户或关键词..."
+                      size="large"
+                      @keyup.enter="handleSearch"
+                    >
+                      <template #append>
+                        <el-button type="primary" @click="handleSearch">
+                          <el-icon><Search /></el-icon>
+                          搜索
+                        </el-button>
+                      </template>
+                    </el-input>
+                  </div>
+                  <div class="search-tags">
+                    <span 
+                      class="search-tag" 
+                      v-for="tag in searchTags" 
+                      :key="tag"
+                      @click="handleSearchTag(tag)"
+                    >
+                      {{ tag }}
+                    </span>
                   </div>
                 </div>
               </div>
-              
-              <!-- 快捷搜索 -->
-              <div class="sidebar-card">
-                <h3 class="sidebar-title">快速搜索</h3>
-                <div class="search-tags">
-                  <span 
-                    class="search-tag" 
-                    v-for="tag in searchTags" 
-                    :key="tag"
-                    @click="handleSearchTag(tag)"
-                  >
-                    {{ tag }}
-                  </span>
-                </div>
-              </div>
-            </aside>
 
-            <!-- 中间：动态更新内容 -->
-            <main class="main-content">
               <!-- 热门商品展示 -->
               <div class="content-card">
                 <div class="card-header">
-                  <h3 class="card-title">热门商品</h3>
+                  <h3 class="card-title">🔥 热门商品</h3>
                   <el-button type="primary" text @click="$router.push('/products')">
                     查看全部 <el-icon><ArrowRight /></el-icon>
                   </el-button>
@@ -133,6 +91,12 @@
                     <div class="product-image">
                       <img :src="product.image" :alt="product.title" />
                       <div class="product-badge">{{ product.condition }}</div>
+                      <div class="product-overlay">
+                        <el-button type="primary" size="small" @click.stop="handleQuickAddToCart(product)">
+                          <el-icon><ShoppingBag /></el-icon>
+                          加入购物车
+                        </el-button>
+                      </div>
                     </div>
                     <div class="product-details">
                       <h4 class="product-title">{{ product.title }}</h4>
@@ -141,65 +105,126 @@
                         <span class="product-location">{{ product.location }}</span>
                         <span class="product-time">{{ product.time }}</span>
                       </div>
+                      <div class="product-actions">
+                        <el-button size="small" text @click.stop="handleLikeProduct(product)">
+                          <el-icon><Star /></el-icon>
+                          收藏
+                        </el-button>
+                        <el-button size="small" text @click.stop="handleShareProduct(product)">
+                          <el-icon><Share /></el-icon>
+                          分享
+                        </el-button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- 最新动态 -->
+              <!-- 实时动态 -->
               <div class="content-card">
                 <div class="card-header">
-                  <h3 class="card-title">最新动态</h3>
+                  <h3 class="card-title">📢 实时动态</h3>
+                  <el-button type="primary" text @click="refreshNews">
+                    <el-icon><Refresh /></el-icon>
+                    刷新
+                  </el-button>
                 </div>
-                <div class="news-list">
-                  <div class="news-item" v-for="news in latestNews" :key="news.id">
-                    <div class="news-avatar">{{ news.avatar }}</div>
-                    <div class="news-content">
-                      <p class="news-text">{{ news.text }}</p>
-                      <span class="news-time">{{ news.time }}</span>
+                <div class="dynamic-list">
+                  <div class="dynamic-item" v-for="item in dynamicItems" :key="item.id">
+                    <div class="dynamic-avatar">
+                      <el-avatar :size="40" :src="item.avatar" />
+                    </div>
+                    <div class="dynamic-content">
+                      <p class="dynamic-text">
+                        <span class="dynamic-user">{{ item.user }}</span>
+                        {{ item.action }}
+                        <span class="dynamic-target" @click="handleDynamicClick(item)">{{ item.target }}</span>
+                      </p>
+                      <div class="dynamic-meta">
+                        <span class="dynamic-time">{{ item.time }}</span>
+                        <div class="dynamic-actions">
+                          <el-button size="mini" text @click="handleLikeDynamic(item)">
+                            <el-icon><Star /></el-icon>
+                            {{ item.likes }}
+                          </el-button>
+                          <el-button size="mini" text @click="handleCommentDynamic(item)">
+                            <el-icon><ChatDotRound /></el-icon>
+                            {{ item.comments }}
+                          </el-button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </main>
 
-            <!-- 右侧：通知公告 -->
-            <aside class="right-sidebar">
+            <!-- 右侧：智能侧边栏 -->
+            <aside class="smart-sidebar">
+              <!-- 个性化推荐 -->
               <div class="sidebar-card">
-                <h3 class="sidebar-title">通知公告</h3>
-                <div class="notifications">
+                <h3 class="sidebar-title">🎯 为你推荐</h3>
+                <div class="recommendation-list">
                   <div 
-                    class="notification-item" 
-                    v-for="notice in notifications" 
-                    :key="notice.id"
+                    class="recommendation-item" 
+                    v-for="rec in recommendations" 
+                    :key="rec.id"
+                    @click="$router.push(`/products/${rec.id}`)"
                   >
-                    <div class="notification-icon">
-                      <el-icon><Bell /></el-icon>
+                    <div class="rec-image">
+                      <img :src="rec.image" :alt="rec.title" />
                     </div>
-                    <div class="notification-content">
-                      <h4>{{ notice.title }}</h4>
-                      <p>{{ notice.content }}</p>
-                      <span class="notification-time">{{ notice.time }}</span>
+                    <div class="rec-info">
+                      <h4>{{ rec.title }}</h4>
+                      <p class="rec-price">¥{{ rec.price }}</p>
+                      <div class="rec-match">
+                        <el-progress :percentage="rec.matchRate" :show-text="false" />
+                        <span class="match-text">{{ rec.matchRate }}%匹配</span>
+                      </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 快捷操作 -->
+              <div class="sidebar-card">
+                <h3 class="sidebar-title">⚡ 快捷操作</h3>
+                <div class="quick-actions-grid">
+                  <div 
+                    class="quick-action" 
+                    v-for="action in smartActions" 
+                    :key="action.id"
+                    @click="handleSmartAction(action)"
+                  >
+                    <div class="action-icon">
+                      <el-icon :size="24">
+                        <component :is="action.icon" />
+                      </el-icon>
+                    </div>
+                    <span class="action-label">{{ action.label }}</span>
                   </div>
                 </div>
               </div>
 
               <!-- 平台统计 -->
               <div class="sidebar-card">
-                <h3 class="sidebar-title">平台统计</h3>
-                <div class="stats-grid">
-                  <div class="stat-item">
-                    <div class="stat-value">{{ stats.totalProducts }}</div>
-                    <div class="stat-label">商品总数</div>
-                  </div>
-                  <div class="stat-item">
-                    <div class="stat-value">{{ stats.totalUsers }}</div>
-                    <div class="stat-label">注册用户</div>
-                  </div>
-                  <div class="stat-item">
-                    <div class="stat-value">{{ stats.todayTransactions }}</div>
-                    <div class="stat-label">今日交易</div>
+                <h3 class="sidebar-title">📊 平台数据</h3>
+                <div class="stats-cards">
+                  <div class="stat-card" v-for="stat in realStats" :key="stat.id">
+                    <div class="stat-icon">
+                      <el-icon :size="20">
+                        <component :is="stat.icon" />
+                      </el-icon>
+                    </div>
+                    <div class="stat-content">
+                      <div class="stat-value">{{ stat.value }}</div>
+                      <div class="stat-label">{{ stat.label }}</div>
+                      <div class="stat-trend" :class="{ 'trend-up': stat.trend > 0, 'trend-down': stat.trend < 0 }">
+                        <el-icon v-if="stat.trend > 0"><Top /></el-icon>
+                        <el-icon v-if="stat.trend < 0"><Bottom /></el-icon>
+                        {{ Math.abs(stat.trend) }}%
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -248,8 +273,10 @@ import GlobalNavigation from '@/components/GlobalNavigation.vue'
 import { 
   ShoppingBag, Search, Goods, Plus, User, 
   ChatDotRound, Star, ArrowRight, Collection, 
-  Document, Setting, Message, Bell, MagicStick
+  Document, Setting, Message, Bell, MagicStick, School,
+  Refresh, Share, Top, Bottom, ShoppingCart
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -270,100 +297,152 @@ interface HotProduct {
 const hotProducts = ref<HotProduct[]>([])
 const isLoading = ref(false)
 
-// 快速功能入口数据
-const quickActions = ref([
+// 搜索标签数据
+const searchTags = ref([
+  '电子产品', '学习资料', '生活用品', '服装鞋帽', 
+  '运动器材', '书籍杂志', '数码配件', '宿舍神器'
+])
+
+// 实时动态数据
+const dynamicItems = ref([
   {
     id: 1,
-    icon: 'Goods',
-    title: '浏览商品',
-    description: '发现海量二手商品',
-    route: '/products'
+    user: '张三',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&auto=format',
+    action: '发布了',
+    target: 'MacBook Pro 2021',
+    time: '2分钟前',
+    likes: 12,
+    comments: 3
   },
   {
     id: 2,
-    icon: 'Plus',
-    title: '发布商品',
-    description: '快速发布闲置物品',
-    route: '/products/publish'
+    user: '李四',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&auto=format',
+    action: '购买了',
+    target: '考研英语词汇书',
+    time: '5分钟前',
+    likes: 8,
+    comments: 2
   },
   {
     id: 3,
+    user: '王五',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&auto=format',
+    action: '收藏了',
+    target: '专业相机',
+    time: '10分钟前',
+    likes: 15,
+    comments: 5
+  },
+  {
+    id: 4,
+    user: '赵六',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&auto=format',
+    action: '发布了',
+    target: '全新运动鞋',
+    time: '15分钟前',
+    likes: 6,
+    comments: 1
+  }
+])
+
+// 个性化推荐数据
+const recommendations = ref([
+  {
+    id: 101,
+    title: 'iPad Air 2022',
+    price: '2800',
+    image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=60&h=60&fit=crop&auto=format',
+    matchRate: 92
+  },
+  {
+    id: 102,
+    title: '机械键盘',
+    price: '180',
+    image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=60&h=60&fit=crop&auto=format',
+    matchRate: 85
+  },
+  {
+    id: 103,
+    title: '考研数学资料',
+    price: '35',
+    image: 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?w=60&h=60&fit=crop&auto=format',
+    matchRate: 78
+  }
+])
+
+// 智能操作数据
+const smartActions = ref([
+  {
+    id: 1,
+    icon: 'Plus',
+    label: '发布商品',
+    route: '/products/publish'
+  },
+  {
+    id: 2,
     icon: 'Collection',
-    title: '我的收藏',
-    description: '查看收藏的商品',
+    label: '我的收藏',
     route: '/profile/favorites'
+  },
+  {
+    id: 3,
+    icon: 'ShoppingCart',
+    label: '购物车',
+    route: '/cart'
   },
   {
     id: 4,
     icon: 'Message',
-    title: '消息中心',
-    description: '查看最新消息',
+    label: '消息',
     route: '/messages'
+  },
+  {
+    id: 5,
+    icon: 'MagicStick',
+    label: 'AI助手',
+    route: '/ai-assistant'
+  },
+  {
+    id: 6,
+    icon: 'School',
+    label: '校园服务',
+    route: '/campus'
   }
 ])
 
-// 搜索标签数据
-const searchTags = ref([
-  '电子产品', '学习资料', '生活用品', '服装鞋帽', 
-  '运动器材', '书籍杂志', '其他'
-])
-
-// 最新动态数据
-const latestNews = ref([
+// 实时统计数据
+const realStats = ref([
   {
     id: 1,
-    avatar: 'User',
-    text: '张三 刚刚发布了 MacBook Pro 2021',
-    time: '2分钟前'
+    icon: 'Goods',
+    value: '1,234',
+    label: '商品总数',
+    trend: 12
   },
   {
     id: 2,
-    avatar: 'User',
-    text: '李四 购买了 考研英语词汇书',
-    time: '5分钟前'
+    icon: 'User',
+    value: '5,678',
+    label: '注册用户',
+    trend: 8
   },
   {
     id: 3,
-    avatar: 'User',
-    text: '王五 发布了 全新运动鞋',
-    time: '10分钟前'
+    icon: 'ShoppingCart',
+    value: '89',
+    label: '今日交易',
+    trend: 15
   },
   {
     id: 4,
-    avatar: 'User',
-    text: '赵六 收藏了 专业相机',
-    time: '15分钟前'
+    icon: 'Star',
+    value: '2,345',
+    label: '收藏总数',
+    trend: 6
   }
 ])
-
-// 通知公告数据
-const notifications = ref([
-  {
-    id: 1,
-    title: '平台维护通知',
-    content: '系统将于今晚进行维护，预计1小时',
-    time: '今天 14:30'
-  },
-  {
-    id: 2,
-    title: '新功能上线',
-    content: '新增商品收藏功能，欢迎体验',
-    time: '昨天 10:15'
-  },
-  {
-    id: 3,
-    title: '交易安全提醒',
-    content: '请通过平台进行交易，保障安全',
-    time: '前天 16:45'
-  }
-])
-
-// 平台统计数据
-const stats = ref({
-  totalProducts: '1,234',
-  totalUsers: '5,678',
-  todayTransactions: '89'
-})
 
 // 获取热门商品数据
 const fetchHotProducts = async () => {
@@ -474,8 +553,24 @@ const fetchHotProducts = async () => {
   }
 }
 
-// 快速功能点击处理
-const handleQuickAction = (action: any) => {
+// 搜索处理
+const handleSearch = () => {
+  if (searchKeyword.value.trim()) {
+    router.push({
+      path: '/products',
+      query: { keyword: searchKeyword.value.trim() }
+    })
+  }
+}
+
+// 搜索标签点击处理
+const handleSearchTag = (tag: string) => {
+  searchKeyword.value = tag
+  handleSearch()
+}
+
+// 智能操作处理
+const handleSmartAction = (action: any) => {
   if (action.route === '/products/publish' && !userStore.isLoggedIn) {
     router.push('/login')
   } else {
@@ -483,12 +578,62 @@ const handleQuickAction = (action: any) => {
   }
 }
 
-// 搜索标签点击处理
-const handleSearchTag = (tag: string) => {
-  router.push({
-    path: '/products',
-    query: { keyword: tag }
-  })
+// 商品交互方法
+const handleQuickAddToCart = (product: any) => {
+  if (!userStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+  // 这里可以调用购物车API
+  ElMessage.success(`已将 ${product.title} 加入购物车`)
+}
+
+const handleLikeProduct = (product: any) => {
+  if (!userStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+  // 这里可以调用收藏API
+  ElMessage.success(`已收藏 ${product.title}`)
+}
+
+const handleShareProduct = (product: any) => {
+  // 这里可以实现分享功能
+  ElMessage.info(`分享 ${product.title}`)
+}
+
+// 动态交互方法
+const handleDynamicClick = (item: any) => {
+  // 跳转到对应的商品页面
+  router.push(`/products/${item.id}`)
+}
+
+const handleLikeDynamic = (item: any) => {
+  if (!userStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+  // 点赞动态
+  item.likes++
+  ElMessage.success('点赞成功')
+}
+
+const handleCommentDynamic = (item: any) => {
+  if (!userStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+  // 跳转到评论页面
+  ElMessage.info('跳转到评论页面')
+}
+
+// 刷新动态
+const refreshNews = () => {
+  ElMessage.info('正在刷新动态...')
+  // 这里可以调用API获取最新动态
+  setTimeout(() => {
+    ElMessage.success('动态已刷新')
+  }, 1000)
 }
 
 // 页面加载动画
@@ -839,160 +984,159 @@ onMounted(async () => {
   transform: scale(1.2);
 }
 
-/* 三栏主要内容区域 - 重新设计 */
+/* 两栏主要内容区域 - 重新设计 */
 .main-content-section {
-  padding: 100px 0;
+  padding: 80px 0;
   background: 
     linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%),
     url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><radialGradient id="c" cx="0.5" cy="0.2" r="0.4"><stop offset="0%" stop-color="%23667eea" stop-opacity="0.03"/><stop offset="100%" stop-color="%23667eea" stop-opacity="0"/></radialGradient></defs><rect width="1200" height="800" fill="url(%23c)"/></svg>');
   position: relative;
   overflow: hidden;
-  font-size: 16px; /* 增大内容区域字体 */
+  font-size: 16px;
 }
 
-/* 特色功能展示区 */
-.feature-section {
-  margin-bottom: 80px;
-  text-align: center;
-}
-
-.feature-grid {
+.two-column-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: 1fr 380px;
   gap: 32px;
-  margin-top: 40px;
+  align-items: start;
 }
 
-.feature-item {
+/* 智能搜索栏 */
+.search-section {
+  margin-bottom: 32px;
+}
+
+.search-card {
   background: 
     linear-gradient(135deg, 
       rgba(255, 255, 255, 0.95) 0%, 
       rgba(255, 255, 255, 0.98) 100%);
   border-radius: 20px;
-  padding: 40px 24px;
+  padding: 32px;
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.08),
     0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  position: relative;
-  overflow: hidden;
+  text-align: center;
 }
 
-.feature-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2, #ff6b6b);
-  border-radius: 20px 20px 0 0;
-}
-
-.feature-item:hover {
-  transform: translateY(-8px);
-  box-shadow: 
-    0 16px 50px rgba(0, 0, 0, 0.12),
-    0 8px 25px rgba(102, 126, 234, 0.2);
-}
-
-.feature-icon {
-  font-size: 3.5rem;
+.search-title {
+  font-size: 1.4rem;
+  font-weight: 700;
   margin-bottom: 20px;
-  display: block;
-}
-
-.feature-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  margin-bottom: 16px;
-  color: #1a202c;
+  color: #2d3748;
   background: linear-gradient(135deg, #667eea, #764ba2);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.feature-desc {
-  font-size: 1.1rem;
-  color: #718096;
-  line-height: 1.6;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+.search-input-group {
+  margin-bottom: 20px;
 }
 
-/* 特色功能展示区 */
-.feature-section {
-  margin-bottom: 80px;
+.search-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.search-tag {
+  background: #f7fafc;
+  color: #4a5568;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.search-tag:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* 紧凑型特色功能展示区 */
+.compact-feature-section {
+  margin-bottom: 60px;
   text-align: center;
 }
 
-.feature-grid {
+.compact-feature-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 32px;
-  margin-top: 40px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-.feature-item {
+.compact-feature-item {
   background: 
     linear-gradient(135deg, 
       rgba(255, 255, 255, 0.95) 0%, 
       rgba(255, 255, 255, 0.98) 100%);
-  border-radius: 20px;
-  padding: 40px 24px;
+  border-radius: 16px;
+  padding: 24px 16px;
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.04);
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    0 1px 4px rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  cursor: pointer;
   position: relative;
   overflow: hidden;
 }
 
-.feature-item::before {
+.compact-feature-item::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 3px;
   background: linear-gradient(90deg, #667eea, #764ba2, #ff6b6b);
-  border-radius: 20px 20px 0 0;
+  border-radius: 16px 16px 0 0;
 }
 
-.feature-item:hover {
-  transform: translateY(-8px);
+.compact-feature-item:hover {
+  transform: translateY(-4px);
   box-shadow: 
-    0 16px 50px rgba(0, 0, 0, 0.12),
-    0 8px 25px rgba(102, 126, 234, 0.2);
+    0 8px 25px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(102, 126, 234, 0.15);
+  border-color: rgba(102, 126, 234, 0.3);
 }
 
-.feature-icon {
-  font-size: 3.5rem;
-  margin-bottom: 20px;
+.compact-feature-icon {
+  font-size: 2rem;
+  color: #667eea;
+  margin-bottom: 12px;
   display: block;
+  transition: all 0.3s ease;
 }
 
-.feature-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  margin-bottom: 16px;
-  color: #1a202c;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.compact-feature-item:hover .compact-feature-icon {
+  color: #764ba2;
+  transform: scale(1.1);
+}
+
+.compact-feature-content h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #2d3748;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.feature-desc {
-  font-size: 1.1rem;
+.compact-feature-content p {
+  font-size: 0.9rem;
   color: #718096;
-  line-height: 1.6;
+  line-height: 1.4;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -1228,33 +1372,145 @@ onMounted(async () => {
 /* 商品网格 - 优化布局 */
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-  max-height: 500px; /* 限制最大高度，更加紧凑 */
-  overflow-y: auto; /* 添加滚动条 */
-  padding-right: 8px; /* 为滚动条留出空间 */
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* 商品项增强交互 */
+.product-item {
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.95) 0%, 
+      rgba(255, 255, 255, 0.98) 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.03);
+  position: relative;
   backdrop-filter: blur(10px);
 }
 
-/* 自定义滚动条样式 */
-.products-grid::-webkit-scrollbar {
-  width: 4px;
+.product-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2, #ff6b6b);
+  border-radius: 16px 16px 0 0;
+  z-index: 2;
 }
 
-.products-grid::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 2px;
+.product-item:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 16px 50px rgba(0, 0, 0, 0.12),
+    0 8px 25px rgba(102, 126, 234, 0.2),
+    0 0 20px rgba(102, 126, 234, 0.1);
+  border-color: rgba(102, 126, 234, 0.3);
 }
 
-.products-grid::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 2px;
+.product-image {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
 }
 
-.products-grid::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  filter: brightness(0.95);
+}
+
+.product-item:hover .product-image img {
+  transform: scale(1.1);
+  filter: brightness(1.02);
+}
+
+.product-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.product-item:hover .product-overlay {
+  opacity: 1;
+}
+
+.product-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.product-details {
+  padding: 20px;
+}
+
+.product-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #1a202c;
+  line-height: 1.4;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #2d3748, #4a5568);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.product-price {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #ff6b6b;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.product-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #718096;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.product-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: flex-end;
 }
 
 .product-item {
@@ -1614,27 +1870,268 @@ onMounted(async () => {
   z-index: 2;
 }
 
+/* 实时动态样式 */
+.dynamic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dynamic-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.dynamic-item:hover {
+  background: #f7fafc;
+  border-color: #e2e8f0;
+  transform: translateX(4px);
+}
+
+.dynamic-avatar {
+  flex-shrink: 0;
+}
+
+.dynamic-content {
+  flex: 1;
+}
+
+.dynamic-text {
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.dynamic-user {
+  font-weight: 600;
+  color: #667eea;
+}
+
+.dynamic-target {
+  color: #ff6b6b;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.dynamic-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dynamic-time {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.dynamic-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 智能侧边栏样式 */
+.smart-sidebar {
+  position: sticky;
+  top: 120px;
+}
+
+.recommendation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.recommendation-item:hover {
+  background: #f7fafc;
+  border-color: #e2e8f0;
+  transform: translateX(4px);
+}
+
+.rec-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.rec-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rec-info {
+  flex: 1;
+}
+
+.rec-info h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #2d3748;
+}
+
+.rec-price {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ff6b6b;
+  margin-bottom: 6px;
+}
+
+.rec-match {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.match-text {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* 快捷操作网格 */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+  text-align: center;
+}
+
+.quick-action:hover {
+  background: #f7fafc;
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+.action-icon {
+  color: #667eea;
+}
+
+.action-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+/* 统计卡片 */
+.stats-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #f7fafc;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  background: #edf2f7;
+  transform: translateX(4px);
+}
+
+.stat-icon {
+  color: #667eea;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 2px;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-bottom: 4px;
+}
+
+.stat-trend {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.trend-up {
+  color: #48bb78;
+}
+
+.trend-down {
+  color: #f56565;
+}
+
 /* 响应式设计 */
 @media (max-width: 1200px) {
-  .three-column-layout {
-    grid-template-columns: 250px 1fr 280px;
-    gap: 20px;
+  .two-column-layout {
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
   }
 }
 
 @media (max-width: 1024px) {
-  .three-column-layout {
+  .two-column-layout {
     grid-template-columns: 1fr;
     gap: 24px;
   }
   
-  .left-sidebar,
-  .right-sidebar {
+  .smart-sidebar {
     position: static;
   }
   
-  .sidebar-card {
-    margin-bottom: 16px;
+  .quick-actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .stats-cards {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

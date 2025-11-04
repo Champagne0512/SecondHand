@@ -408,6 +408,7 @@ export const useProductStore = defineStore('products', () => {
 
       // 处理图片上传（如果有新图片）
       let imageUrls: string[] = []
+      let hasNewImages = false
       
       if (data.images && data.images.length > 0) {
         for (let i = 0; i < data.images.length; i++) {
@@ -418,6 +419,7 @@ export const useProductStore = defineStore('products', () => {
             imageUrls.push(imageFile)
           } else if (imageFile instanceof File) {
             // 如果是新上传的文件，需要上传到Supabase
+            hasNewImages = true
             try {
               const fileName = `${Date.now()}_${i}_${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
               const filePath = `product-images/${userStore.user.id}/${fileName}`
@@ -447,32 +449,66 @@ export const useProductStore = defineStore('products', () => {
         }
       }
 
-      // 如果没有图片，保留原有图片
+      // 如果没有上传任何图片（包括新图片和旧图片URL），则使用原有图片
       if (imageUrls.length === 0 && product.images) {
         imageUrls = product.images
       }
 
-      // 准备更新数据
+      // 准备更新数据（将驼峰字段转换为下划线字段）
       const updateData = {
-        ...data,
+        title: data.title,
+        description: data.description,
+        price: data.price,
+        original_price: data.originalPrice,
+        category: data.category,
+        condition: data.condition,
+        location: data.location,
+        contact_info: data.contactInfo,
         images: imageUrls.length > 0 ? imageUrls : product.images
       }
 
       console.log('准备更新商品数据:', updateData)
 
-      // 调用API更新商品
-      const result = await supabaseProductApi.updateProduct(id, updateData)
-      
-      console.log('商品更新成功:', result)
+      // 直接使用Supabase更新商品
+      const { data: updatedProduct, error: updateError } = await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('商品更新失败:', updateError)
+        throw updateError
+      }
+
+      console.log('商品更新成功:', updatedProduct)
 
       // 更新本地状态
       const index = products.value.findIndex(p => p.id === id)
       if (index !== -1) {
         products.value[index] = {
           ...products.value[index],
-          ...result,
+          title: updatedProduct.title,
+          description: updatedProduct.description,
+          price: updatedProduct.price,
+          originalPrice: updatedProduct.original_price,
+          category: updatedProduct.category,
+          images: updatedProduct.images,
+          condition: updatedProduct.condition,
+          location: updatedProduct.location,
+          contactInfo: updatedProduct.contact_info,
+          updatedAt: updatedProduct.updated_at,
           sellerName: userStore.user.username,
           sellerAvatar: userStore.user.avatar
+        }
+      }
+
+      // 更新当前商品详情
+      if (currentProduct.value && currentProduct.value.id === id) {
+        currentProduct.value = {
+          ...currentProduct.value,
+          ...products.value[index]
         }
       }
 

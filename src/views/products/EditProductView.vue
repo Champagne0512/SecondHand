@@ -505,7 +505,9 @@ const loadProductData = async () => {
         name: `image-${index}.jpg`,
         url: url
       }))
-      productImages.value = product.images
+      // 注意：这里应该保留字符串URL，而不是设置为product.images
+      // 因为productImages用于保存新上传的File对象
+      productImages.value = []
     }
 
   } catch (error) {
@@ -557,7 +559,8 @@ const handleUpdate = async () => {
     // 准备更新数据
     const updateData = {
       ...productForm,
-      images: productImages.value
+      // 如果有新上传的图片，使用新图片；否则保留原有图片
+      images: productImages.value.length > 0 ? productImages.value : (productStore.currentProduct.images || [])
     }
 
     // 调用更新商品API
