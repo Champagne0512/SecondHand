@@ -236,28 +236,28 @@ const categories = ref([
 const quickTemplates = [
   {
     name: '电子产品',
-    icon: 'Mobile',
+    icon: Mobile,
     category: 'electronics',
     condition: '轻微使用',
     description: '功能完好，无维修记录，配件齐全。'
   },
   {
     name: '教材书籍',
-    icon: 'Notebook',
+    icon: Notebook,
     category: 'books',
     condition: '轻微使用',
     description: '保存完好，无严重涂写，适合学习使用。'
   },
   {
     name: '服装鞋帽',
-    icon: 'TShirt',
+    icon: TShirt,
     category: 'clothing',
     condition: '明显使用',
     description: '干净整洁，可正常使用，有正常使用痕迹。'
   },
   {
     name: '运动器材',
-    icon: 'Basketball',
+    icon: Basketball,
     category: 'sports',
     condition: '明显使用',
     description: '功能正常，适合运动使用，有使用痕迹。'

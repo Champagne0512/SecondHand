@@ -64,7 +64,7 @@
               </div>
               <div class="feature-item">
                 <div class="feature-icon">
-                  <el-icon size="48"><Robot /></el-icon>
+                  <el-icon size="48"><MagicStick /></el-icon>
                 </div>
                 <h3 class="feature-title">AI助手</h3>
                 <p class="feature-desc">智能推荐，帮你找到心仪商品</p>
@@ -248,7 +248,7 @@ import GlobalNavigation from '@/components/GlobalNavigation.vue'
 import { 
   ShoppingBag, Search, Goods, Plus, User, 
   ChatDotRound, Star, ArrowRight, Collection, 
-  Document, Setting, Message, Bell
+  Document, Setting, Message, Bell, MagicStick
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
