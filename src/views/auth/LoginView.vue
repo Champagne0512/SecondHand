@@ -281,25 +281,13 @@ const handleLogin = async () => {
 
 .modern-input {
   border-radius: 12px;
-  border: 1.5px solid #e2e8f0;
+  border: 2px solid #e2e8f0;
   transition: all 0.3s ease;
-  width: 100%;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .modern-input:focus-within {
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 12px rgba(102, 126, 234, 0.2);
-  transform: translateY(-1px);
-}
-
-.modern-input :deep(.el-input__wrapper) {
-  padding-left: 45px;
-  border: none;
-  box-shadow: none;
-  width: 100% !important;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
 }
 
 .modern-input :deep(.el-input__wrapper) {
