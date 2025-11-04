@@ -10,11 +10,6 @@
             <el-icon><ShoppingBag /></el-icon>
           </div>
           <span class="logo-text">校园二手交易</span>
-          <!-- 左侧装饰元素 -->
-          <div class="nav-decoration left-decoration">
-            <div class="decoration-dot"></div>
-            <div class="decoration-line"></div>
-          </div>
         </div>
 
         <!-- 主导航菜单 - 重新设计为直观的图标导航 -->
@@ -80,12 +75,6 @@
 
         <!-- 搜索和用户操作区域 -->
         <div class="nav-actions">
-          <!-- 右侧装饰元素 -->
-          <div class="nav-decoration right-decoration">
-            <div class="decoration-line"></div>
-            <div class="decoration-dot"></div>
-          </div>
-          
           <!-- 搜索框 -->
           <div class="search-box">
             <el-input
@@ -371,57 +360,7 @@ watch(() => route.path, () => {
   transform: scale(1.08);
 }
 
-/* 导航装饰元素 */
-.nav-decoration {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  opacity: 0.6;
-  transition: opacity 0.3s ease;
-}
 
-.nav-decoration:hover {
-  opacity: 0.9;
-}
-
-.left-decoration {
-  left: -60px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.right-decoration {
-  right: -60px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.decoration-dot {
-  width: 4px;
-  height: 4px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-.decoration-line {
-  width: 40px;
-  height: 1px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  border-radius: 1px;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-}
 
 .logo-icon {
   background: linear-gradient(135deg, #667eea, #764ba2, #ff6b6b);
@@ -839,10 +778,7 @@ watch(() => route.path, () => {
     font-size: 18px;
   }
   
-  /* 移动端隐藏装饰元素 */
-  .nav-decoration {
-    display: none;
-  }
+
 }
 
 @media (max-width: 480px) {
