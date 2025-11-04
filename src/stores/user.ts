@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 import type { User, LoginForm, RegisterForm } from '@/types/user'
+import { ElMessage } from 'element-plus'
 
 // 用户状态管理store
 export const useUserStore = defineStore('user', () => {
@@ -222,10 +223,80 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // 上传头像到Supabase存储
+  const uploadAvatar = async (file: File): Promise<string> => {
+    try {
+      if (!user.value) throw new Error('用户未登录')
+      
+      // 验证文件类型和大小
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      const maxSize = 5 * 1024 * 1024 // 5MB
+      
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('只支持 JPG、PNG、GIF、WebP 格式的图片')
+      }
+      
+      if (file.size > maxSize) {
+        throw new Error('图片大小不能超过 5MB')
+      }
+      
+      // 生成唯一的文件名
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.value.id}-${Date.now()}.${fileExt}`
+      
+      // 上传文件到Supabase存储
+      const { data, error } = await supabase.storage
+        .from('user-avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+      
+      if (error) throw error
+      
+      // 获取公开URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('user-avatars')
+        .getPublicUrl(fileName)
+      
+      return publicUrl
+    } catch (error: any) {
+      console.error('头像上传失败:', error)
+      throw new Error(error.message || '头像上传失败')
+    }
+  }
+
+  // 删除旧头像
+  const deleteOldAvatar = async (avatarUrl: string) => {
+    try {
+      if (!avatarUrl || !avatarUrl.includes('user-avatars')) return
+      
+      // 从URL中提取文件名
+      const fileName = avatarUrl.split('/').pop()
+      if (!fileName) return
+      
+      // 删除旧头像
+      const { error } = await supabase.storage
+        .from('user-avatars')
+        .remove([fileName])
+      
+      if (error) {
+        console.warn('删除旧头像失败:', error)
+      }
+    } catch (error) {
+      console.warn('删除旧头像时出错:', error)
+    }
+  }
+
   // 更新用户信息
   const updateProfile = async (profile: Partial<User>) => {
     try {
       if (!user.value) throw new Error('用户未登录')
+
+      // 如果头像有变化且是新的URL，删除旧头像
+      if (profile.avatar && profile.avatar !== user.value.avatar && profile.avatar.includes('user-avatars')) {
+        await deleteOldAvatar(user.value.avatar)
+      }
 
       const { error } = await supabase
         .from('profiles')
@@ -566,6 +637,8 @@ export const useUserStore = defineStore('user', () => {
     register,
     logout,
     updateProfile,
+    uploadAvatar,
+    deleteOldAvatar,
     initUser,
     fetchFavorites,
     isFavorited,

@@ -291,10 +291,48 @@ const handleMenuSelect = (index: string) => {
 }
 
 // 头像上传
-const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
-  // 这里可以添加头像上传逻辑
-  ElMessage.info('头像上传功能开发中')
-  return false
+const beforeAvatarUpload: UploadProps['beforeUpload'] = async (rawFile) => {
+  try {
+    // 验证文件类型
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(rawFile.type)) {
+      ElMessage.error('只支持 JPG、PNG、GIF、WebP 格式的图片')
+      return false
+    }
+    
+    // 验证文件大小（5MB）
+    const maxSize = 5 * 1024 * 1024
+    if (rawFile.size > maxSize) {
+      ElMessage.error('图片大小不能超过 5MB')
+      return false
+    }
+    
+    // 显示上传中提示
+    ElMessage.info('头像上传中...')
+    
+    // 上传头像到Supabase
+    const avatarUrl = await userStore.uploadAvatar(rawFile)
+    
+    // 更新表单中的头像URL
+    profileForm.avatar = avatarUrl
+    
+    // 立即保存到数据库
+    const result = await userStore.updateProfile({
+      avatar: avatarUrl
+    })
+    
+    if (result.success) {
+      ElMessage.success('头像上传成功')
+    } else {
+      ElMessage.error(result.message)
+    }
+    
+    return false // 阻止默认上传行为
+  } catch (error: any) {
+    console.error('头像上传失败:', error)
+    ElMessage.error(error.message || '头像上传失败')
+    return false
+  }
 }
 
 // 保存个人信息
