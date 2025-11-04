@@ -196,7 +196,8 @@ import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
-import { ShoppingBag, Plus, Delete, ZoomIn, Mobile, Notebook, TShirt, Basketball } from '@element-plus/icons-vue'
+import GlobalNavigation from '@/components/GlobalNavigation.vue'
+import { ShoppingBag, Plus, Delete, ZoomIn, Iphone, Notebook, Basketball } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadProps, UploadUserFile } from 'element-plus'
 
@@ -236,7 +237,7 @@ const categories = ref([
 const quickTemplates = [
   {
     name: '电子产品',
-    icon: Mobile,
+    icon: Iphone,
     category: 'electronics',
     condition: '轻微使用',
     description: '功能完好，无维修记录，配件齐全。'
@@ -250,10 +251,10 @@ const quickTemplates = [
   },
   {
     name: '服装鞋帽',
-    icon: TShirt,
+    icon: ShoppingBag,
     category: 'clothing',
-    condition: '明显使用',
-    description: '干净整洁，可正常使用，有正常使用痕迹。'
+    condition: '轻微使用',
+    description: '款式时尚，保存完好，无明显磨损。'
   },
   {
     name: '运动器材',

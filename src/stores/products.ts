@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
+import { supabaseProductApi } from '@/api/supabase'
 import { localDB } from '@/lib/local-db'
 import { useUserStore } from '@/stores/user'
 import type { Product, ProductForm, ProductFilter } from '@/types/product'
