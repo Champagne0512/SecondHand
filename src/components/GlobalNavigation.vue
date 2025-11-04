@@ -115,7 +115,7 @@
               </el-button>
               <el-dropdown @command="handleUserCommand">
                 <span class="user-dropdown">
-                  <el-avatar :size="32" :src="userStore.userInfo?.avatar" />
+                  <el-avatar :size="32" :src="userStore.userInfo?.avatar" shape="circle" />
                   <span class="username">{{ userStore.userInfo?.username }}</span>
                 </span>
                 <template #dropdown>
@@ -645,6 +645,11 @@ watch(() => route.path, () => {
   font-weight: 500;
   color: #333;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  min-width: 0;
 }
 
 /* 面包屑导航 */
