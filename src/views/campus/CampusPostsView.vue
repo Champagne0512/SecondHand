@@ -1,8 +1,5 @@
 <template>
   <div class="campus-posts-view">
-    <!-- 全局导航 -->
-    <GlobalNavigation />
-    
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
@@ -206,7 +203,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useCampusStore } from '@/stores/campus'
 import { ElMessage } from 'element-plus'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import { Plus, Search } from '@element-plus/icons-vue'
 
 const campusStore = useCampusStore()

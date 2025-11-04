@@ -1,8 +1,5 @@
 <template>
   <div class="favorites-view">
-    <!-- 全局导航组件 -->
-    <GlobalNavigation />
-
     <!-- 主要内容 -->
     <main class="favorites-content">
       <div class="container">
@@ -96,7 +93,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
 import { supabase } from '@/lib/supabase'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import { Delete, Star, View } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()

@@ -1,8 +1,5 @@
 <template>
   <div class="ai-assistant-view">
-    <!-- 全局导航 -->
-    <GlobalNavigation />
-    
     <!-- 页面头部 -->
     <div class="ai-header">
       <div class="header-content">
@@ -329,7 +326,7 @@ import { ref, computed, onMounted, onErrorCaptured } from 'vue'
 import { useAIAssistantStore } from '@/stores/ai-assistant'
 import { usePriceAnalyticsStore } from '@/stores/price-analytics'
 import { ElMessage } from 'element-plus'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import FloatingAIAssistant from '@/components/FloatingAIAssistant.vue'
 
 const aiStore = useAIAssistantStore()

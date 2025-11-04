@@ -104,6 +104,16 @@
           <!-- 用户操作 -->
           <div class="user-actions">
             <template v-if="userStore.isLoggedIn">
+              <!-- 购物车入口 -->
+              <div class="cart-icon-container" @click="$router.push('/cart')">
+                <el-badge :value="cartItemCount" :max="99" class="cart-badge">
+                  <el-icon class="cart-icon">
+                    <ShoppingCart />
+                  </el-icon>
+                </el-badge>
+                <span class="cart-label">购物车</span>
+              </div>
+              
               <el-button 
                 type="primary" 
                 size="small" 
@@ -182,17 +192,26 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useCartStore } from '@/stores/cart'
 import { ElMessage } from 'element-plus'
 import { 
   ShoppingBag, House, Goods, Plus, User, Search, 
-  ChatDotRound, SwitchButton, School, Cpu, Setting
+  ChatDotRound, SwitchButton, School, Cpu, Setting,
+  ShoppingCart
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const cartStore = useCartStore()
 
 const searchKeyword = ref('')
+
+// 计算购物车商品数量
+const cartItemCount = computed(() => {
+  if (!userStore.isLoggedIn) return 0
+  return cartStore.cartItems.reduce((total, item) => total + item.quantity, 0)
+})
 
 // 计算当前激活的菜单项
 const activeMenu = computed(() => {
@@ -335,7 +354,7 @@ watch(() => route.path, () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
+  height: 72px;
   position: relative;
 }
 
@@ -387,59 +406,7 @@ watch(() => route.path, () => {
 }
 
 .decoration-line {
-  width: 20px;
-  height: 1px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  border-radius: 1px;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-}
-
-/* 导航装饰元素 */
-.nav-decoration {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  opacity: 0.6;
-  transition: opacity 0.3s ease;
-}
-
-.nav-decoration:hover {
-  opacity: 0.9;
-}
-
-.left-decoration {
-  left: -60px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.right-decoration {
-  right: -60px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.decoration-dot {
-  width: 4px;
-  height: 4px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-.decoration-line {
-  width: 20px;
+  width: 40px;
   height: 1px;
   background: linear-gradient(90deg, #667eea, #764ba2);
   border-radius: 1px;
@@ -602,6 +569,102 @@ watch(() => route.path, () => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* 购物车图标样式 */
+.cart-icon-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px 14px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  min-width: 65px;
+  height: 60px;
+  justify-content: center;
+}
+
+.cart-icon-container:hover {
+  background: rgba(102, 126, 234, 0.1);
+  transform: translateY(-1px);
+}
+
+.cart-badge {
+  position: relative;
+}
+
+.cart-icon {
+  font-size: 26px;
+  color: #606266;
+  transition: all 0.3s ease;
+  margin-bottom: 2px;
+}
+
+.cart-icon-container:hover .cart-icon {
+  color: #667eea;
+  transform: scale(1.1);
+}
+
+.cart-label {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 2px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  line-height: 1.2;
+}
+
+.cart-icon-container:hover .cart-label {
+  color: #667eea;
+}
+
+/* 购物车图标样式 */
+.cart-icon-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px 14px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  min-width: 65px;
+  height: 60px;
+  justify-content: center;
+}
+
+.cart-icon-container:hover {
+  background: rgba(102, 126, 234, 0.1);
+  transform: translateY(-1px);
+}
+
+.cart-badge {
+  position: relative;
+}
+
+.cart-icon {
+  font-size: 26px;
+  color: #606266;
+  transition: all 0.3s ease;
+  margin-bottom: 2px;
+}
+
+.cart-icon-container:hover .cart-icon {
+  color: #667eea;
+  transform: scale(1.1);
+}
+
+.cart-label {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 2px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  line-height: 1.2;
+}
+
+.cart-icon-container:hover .cart-label {
+  color: #667eea;
 }
 
 .publish-btn {

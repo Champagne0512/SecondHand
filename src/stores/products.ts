@@ -406,20 +406,19 @@ export const useProductStore = defineStore('products', () => {
       if (!product) throw new Error('商品不存在')
       if (product.sellerId !== userStore.user.id) throw new Error('无权修改此商品')
 
-      // 处理图片上传（如果有新图片）
-      let imageUrls: string[] = []
-      let hasNewImages = false
+      // 处理图片上传
+      let finalImageUrls: string[] = []
       
       if (data.images && data.images.length > 0) {
+        // 处理新上传的图片
         for (let i = 0; i < data.images.length; i++) {
           const imageFile = data.images[i]
           
           if (typeof imageFile === 'string') {
             // 如果是字符串（已存在的图片URL），直接使用
-            imageUrls.push(imageFile)
+            finalImageUrls.push(imageFile)
           } else if (imageFile instanceof File) {
             // 如果是新上传的文件，需要上传到Supabase
-            hasNewImages = true
             try {
               const fileName = `${Date.now()}_${i}_${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
               const filePath = `product-images/${userStore.user.id}/${fileName}`
@@ -440,18 +439,16 @@ export const useProductStore = defineStore('products', () => {
                 .from('product-images')
                 .getPublicUrl(filePath)
 
-              imageUrls.push(publicUrl)
+              finalImageUrls.push(publicUrl)
             } catch (imageError) {
               console.error(`处理图片失败:`, imageError)
               continue
             }
           }
         }
-      }
-
-      // 如果没有上传任何图片（包括新图片和旧图片URL），则使用原有图片
-      if (imageUrls.length === 0 && product.images) {
-        imageUrls = product.images
+      } else {
+        // 如果没有新图片，使用原有图片
+        finalImageUrls = product.images || []
       }
 
       // 准备更新数据（将驼峰字段转换为下划线字段）
@@ -464,7 +461,7 @@ export const useProductStore = defineStore('products', () => {
         condition: data.condition,
         location: data.location,
         contact_info: data.contactInfo,
-        images: imageUrls.length > 0 ? imageUrls : product.images
+        images: finalImageUrls
       }
 
       console.log('准备更新商品数据:', updateData)

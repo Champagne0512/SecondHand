@@ -1,8 +1,5 @@
 <template>
   <div class="publish-product-view">
-    <!-- 全局导航组件 -->
-    <GlobalNavigation />
-
     <!-- 主要内容 -->
     <main class="main-content">
       <div class="container" v-loading="userStore.isLoading">
@@ -196,7 +193,7 @@ import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import { ShoppingBag, Plus, Delete, ZoomIn, Iphone, Notebook, Basketball } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadProps, UploadUserFile } from 'element-plus'

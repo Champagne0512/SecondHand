@@ -1,8 +1,5 @@
 <template>
   <div class="ai-assistant-deepseek-view">
-    <!-- 全局导航 -->
-    <GlobalNavigation />
-    
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
@@ -68,7 +65,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CircleCheck } from '@element-plus/icons-vue'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import FloatingAIAssistant from '@/components/FloatingAIAssistant.vue'
 import { useAIAssistantEnhancedStore } from '@/stores/ai-assistant-enhanced'
 

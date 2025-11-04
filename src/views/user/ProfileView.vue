@@ -1,8 +1,5 @@
 <template>
   <div class="profile-view">
-    <!-- 全局导航组件 -->
-    <GlobalNavigation />
-
     <!-- 主要内容 -->
     <main class="main-content">
       <div class="container">
@@ -188,7 +185,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
 import { supabaseProductApi } from '@/api/supabase'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import { 
   ShoppingBag, User, Goods, Star, 
   ChatDotRound, Plus 

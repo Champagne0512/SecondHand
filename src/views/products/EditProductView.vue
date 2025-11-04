@@ -1,8 +1,5 @@
 <template>
   <div class="edit-product-view">
-    <!-- 全局导航组件 -->
-    <GlobalNavigation />
-
     <!-- 主要内容 -->
     <main class="main-content">
       <div class="container" v-loading="isLoading">
@@ -505,8 +502,7 @@ const loadProductData = async () => {
         name: `image-${index}.jpg`,
         url: url
       }))
-      // 注意：这里应该保留字符串URL，而不是设置为product.images
-      // 因为productImages用于保存新上传的File对象
+      // 清空新上传的图片数组，保留原有图片URL
       productImages.value = []
     }
 
@@ -531,8 +527,8 @@ const handleUpdate = async () => {
       return
     }
 
-    // 检查是否上传了图片
-    if (productImages.value.length === 0) {
+    // 检查是否至少有一张图片（新上传的或原有的）
+    if (productImages.value.length === 0 && (!productStore.currentProduct || !productStore.currentProduct.images || productStore.currentProduct.images.length === 0)) {
       ElMessage.warning('请至少上传一张商品图片')
       return
     }
@@ -559,8 +555,8 @@ const handleUpdate = async () => {
     // 准备更新数据
     const updateData = {
       ...productForm,
-      // 如果有新上传的图片，使用新图片；否则保留原有图片
-      images: productImages.value.length > 0 ? productImages.value : (productStore.currentProduct.images || [])
+      // 将图片数据传递给store处理，store会正确处理新旧图片的混合
+      images: productImages.value
     }
 
     // 调用更新商品API

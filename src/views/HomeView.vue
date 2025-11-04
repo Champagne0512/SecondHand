@@ -1,8 +1,5 @@
 <template>
   <div class="home-view">
-    <!-- 全局导航组件 -->
-    <GlobalNavigation />
-
     <!-- 现代化主要内容 -->
     <main class="modern-content">
       <!-- 顶部轮播图区域 -->
@@ -269,7 +266,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import { 
   ShoppingBag, Search, Goods, Plus, User, 
   ChatDotRound, Star, ArrowRight, Collection, 

@@ -1,8 +1,5 @@
 <template>
   <div class="modern-product-list-view">
-    <!-- 全局导航组件 -->
-    <GlobalNavigation />
-
     <!-- 现代化主要内容 -->
     <main class="modern-main-content">
       <div class="container">
@@ -166,6 +163,16 @@
                   <img :src="product.images[0] || '/src/assets/default-product.jpg'" :alt="product.title" />
                   <div class="image-overlay">
                     <el-button type="primary" size="small" class="view-details-btn">查看详情</el-button>
+                    <el-button 
+                      type="success" 
+                      size="small" 
+                      class="add-to-cart-btn"
+                      @click.stop="handleAddToCart(product)"
+                      :disabled="product.status !== 'available'"
+                    >
+                      <el-icon><ShoppingCart /></el-icon>
+                      加入购物车
+                    </el-button>
                   </div>
                 </div>
                 <div class="product-status" :class="product.status">
@@ -226,7 +233,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import { ShoppingBag, Search, Plus, Refresh, Filter, View, Star } from '@element-plus/icons-vue'
 
 const router = useRouter()

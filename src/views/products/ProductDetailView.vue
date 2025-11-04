@@ -1,8 +1,5 @@
 <template>
   <div class="product-detail-view">
-    <!-- 全局导航组件 -->
-    <GlobalNavigation />
-
     <!-- 主要内容 -->
     <main class="main-content" v-loading="productStore.isLoading">
       <div class="container" v-if="product">
@@ -92,6 +89,16 @@
                 联系卖家
               </el-button>
               <el-button 
+                type="success" 
+                size="large" 
+                :disabled="product.status !== 'available'"
+                @click="handleAddToCart"
+                :loading="cartStore.isLoading"
+              >
+                <el-icon><ShoppingCart /></el-icon>
+                加入购物车
+              </el-button>
+              <el-button 
                 size="large" 
                 @click="handleAddToFavorites"
                 :type="userStore.isFavorited(product.id) ? 'warning' : 'default'"
@@ -149,16 +156,18 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
+import { useCartStore } from '@/stores/cart'
 import { ElMessage } from 'element-plus'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import { 
-  ShoppingBag, ChatDotRound, Star, Share
+  ShoppingBag, ChatDotRound, Star, Share, ShoppingCart
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const productStore = useProductStore()
+const cartStore = useCartStore()
 
 const currentImage = ref('')
 
@@ -277,6 +286,39 @@ const handleAddToFavorites = async () => {
   }
 }
 
+// 加入购物车
+const handleAddToCart = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录后再添加商品到购物车')
+    router.push('/login')
+    return
+  }
+  
+  if (!product.value) {
+    ElMessage.error('商品信息不存在')
+    return
+  }
+  
+  try {
+    console.log('添加商品到购物车，商品ID:', product.value.id)
+    
+    // 调用购物车store的添加方法
+    const result = await cartStore.addToCart(product.value.id)
+    
+    if (result) {
+      ElMessage.success('商品已成功添加到购物车')
+    } else {
+      ElMessage.error('添加失败，请重试')
+    }
+    
+    console.log('添加购物车操作结果:', result)
+  } catch (error) {
+    console.error('添加购物车失败:', error)
+    ElMessage.error('操作失败，请重试')
+  }
+}
+
+// 加入购物车
 // 分享商品
 const handleShare = async () => {
   if (navigator.share) {
@@ -563,11 +605,19 @@ onMounted(async () => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .action-buttons .el-button {
   flex: 1;
   min-width: 120px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 /* 相关商品 */

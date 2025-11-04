@@ -1,61 +1,82 @@
 <template>
   <div id="app">
-    <router-view />
+    <!-- 全局导航 -->
+    <GlobalNavigation v-if="showNavigation" />
+    
+    <!-- 主要内容区域 -->
+    <main class="main-content" :class="{ 'no-nav': !showNavigation }">
+      <router-view />
+    </main>
+    
+    <!-- 全局浮动AI助手 -->
     <FloatingAIAssistant />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { computed, onMounted, onErrorCaptured } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { useRouter, useRoute } from 'vue-router'
+import { useCampusStore } from '@/stores/campus'
+import { useCartStore } from '@/stores/cart'
+import GlobalNavigation from '@/components/GlobalNavigation.vue'
 import FloatingAIAssistant from '@/components/FloatingAIAssistant.vue'
 
-// 应用根组件
-const userStore = useUserStore()
-const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
+const campusStore = useCampusStore()
 
-onMounted(async () => {
-  // 初始化用户状态
-  console.log('App.vue: 初始化用户状态...')
-  const initSuccess = await userStore.initUser()
-  console.log('App.vue: 用户状态初始化结果:', initSuccess)
-  
-  // 如果当前页面需要认证且用户未登录，跳转到登录页
-  if (route.meta.requiresAuth && !userStore.isLoggedIn) {
-    console.log('App.vue: 当前页面需要认证，用户未登录，跳转到登录页')
-    router.push('/login')
-  }
+// 计算是否显示导航栏
+const showNavigation = computed(() => {
+  // 在登录、注册和管理员登录页面不显示导航栏
+  const hideNavRoutes = ['/login', '/register', '/admin/login']
+  return !hideNavRoutes.includes(route.path)
 })
 
-// 监听路由变化，确保认证状态
-watch(route, async (newRoute) => {
-  if (newRoute.meta.requiresAuth && !userStore.isLoggedIn) {
-    console.log('App.vue: 路由变化，页面需要认证，用户未登录，跳转到登录页')
-    router.push('/login')
+// 全局错误处理
+onErrorCaptured((error, instance, info) => {
+  console.error('全局错误捕获:', error, info)
+  // 可以在这里添加错误上报逻辑
+  return false // 阻止错误继续向上传播
+})
+
+onMounted(async () => {
+  try {
+    // 初始化用户状态
+    await userStore.initUser()
+    
+    // 如果有用户登录，加载相关数据
+    if (userStore.isLoggedIn) {
+      // 初始化购物车
+      const cartStore = useCartStore()
+      await cartStore.initializeCart()
+      console.log('用户已登录，加载购物车数据')
+    }
+  } catch (error) {
+    console.error('应用初始化失败:', error)
   }
 })
 </script>
 
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+<style scoped>
 #app {
-  font-family: 'Inter', 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: #2c3e50;
   min-height: 100vh;
-  font-size: 16px; /* 增大全局字体大小 */
-  line-height: 1.6;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-body {
-  background-color: #f5f7fa;
+.main-content {
+  min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+.main-content.no-nav {
+  padding-top: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .main-content {
+    padding-top: 0;
+  }
 }
 </style>

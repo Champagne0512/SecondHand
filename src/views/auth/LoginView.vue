@@ -266,8 +266,22 @@ const handleLogin = async () => {
   margin-bottom: 30px;
 }
 
+.modern-login-form :deep(.el-form-item) {
+  margin-bottom: 24px;
+}
+
+.modern-login-form :deep(.el-form-item:last-child) {
+  margin-bottom: 0;
+}
+
+.modern-login-form :deep(.el-form-item__content) {
+  display: flex;
+  align-items: center;
+}
+
 .input-container {
   position: relative;
+  width: 100%;
 }
 
 .input-icon {
@@ -277,12 +291,14 @@ const handleLogin = async () => {
   transform: translateY(-50%);
   color: #a0aec0;
   z-index: 2;
+  font-size: 18px;
 }
 
 .modern-input {
   border-radius: 12px;
   border: 2px solid #e2e8f0;
   transition: all 0.3s ease;
+  width: 100%;
 }
 
 .modern-input:focus-within {
@@ -291,9 +307,31 @@ const handleLogin = async () => {
 }
 
 .modern-input :deep(.el-input__wrapper) {
-  padding-left: 45px;
-  border: none;
-  box-shadow: none;
+  padding-left: 45px !important;
+  padding-right: 12px !important;
+  border: none !important;
+  box-shadow: none !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.modern-input :deep(.el-input__inner) {
+  height: 100% !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.modern-input :deep(.el-input__suffix) {
+  display: flex !important;
+  align-items: center !important;
+  margin-left: 8px !important;
+}
+
+.modern-input :deep(.el-input__suffix-inner) {
+  display: flex !important;
+  align-items: center !important;
 }
 
 .form-options {

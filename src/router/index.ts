@@ -65,6 +65,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '我的收藏', requiresAuth: true }
   },
   {
+    path: '/cart',
+    name: 'Cart',
+    component: () => import('@/views/user/CartView.vue'),
+    meta: { title: '我的购物车', requiresAuth: true }
+  },
+  {
     path: '/campus',
     name: 'Campus',
     component: () => import('@/views/campus/CampusView.vue'),

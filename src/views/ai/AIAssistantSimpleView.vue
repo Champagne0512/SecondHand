@@ -1,8 +1,5 @@
 <template>
   <div class="ai-assistant-simple-view">
-    <!-- 全局导航 -->
-    <GlobalNavigation />
-    
     <!-- 错误边界 -->
     <ErrorBoundary>
       <!-- 页面头部 -->
@@ -262,7 +259,7 @@ import {
   Loading,
   Warning
 } from '@element-plus/icons-vue'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import FloatingAIAssistant from '@/components/FloatingAIAssistant.vue'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import FloatingAIAssistantEnhanced from '@/components/FloatingAIAssistantEnhanced.vue'

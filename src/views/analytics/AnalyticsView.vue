@@ -1,8 +1,5 @@
 <template>
   <div class="analytics-view">
-    <!-- 全局导航 -->
-    <GlobalNavigation />
-    
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-content">
@@ -335,7 +332,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { usePriceAnalyticsStore } from '@/stores/price-analytics'
 import { ElMessage } from 'element-plus'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 import { TrendCharts } from '@element-plus/icons-vue'
 
 const priceStore = usePriceAnalyticsStore()

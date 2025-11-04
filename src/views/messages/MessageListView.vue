@@ -1,8 +1,5 @@
 <template>
   <div class="message-list-view">
-    <!-- 全局导航组件 -->
-    <GlobalNavigation />
-
     <!-- 主要内容 -->
     <main class="main-content" v-loading="messageStore.isLoading">
       <div class="container">
@@ -166,7 +163,7 @@ import { useProductStore } from '@/stores/products'
 import { useMessageStore } from '@/stores/messages'
 import { ShoppingBag, Plus, Goods } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
+
 
 const route = useRoute()
 const router = useRouter()
