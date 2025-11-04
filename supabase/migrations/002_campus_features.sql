@@ -19,22 +19,30 @@ CREATE TABLE IF NOT EXISTS campus_posts (
 );
 
 -- 校园动态点赞表
-CREATE TABLE IF NOT EXISTS campus_post_likes (
+CREATE TABLE IF NOT EXISTS post_likes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   post_id UUID NOT NULL REFERENCES campus_posts(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   UNIQUE(post_id, user_id)
 );
 
 -- 校园动态评论表
-CREATE TABLE IF NOT EXISTS campus_post_comments (
+CREATE TABLE IF NOT EXISTS post_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   post_id UUID NOT NULL REFERENCES campus_posts(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+  likes INTEGER DEFAULT 0,
+  is_liked BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- 添加外键关系，使评论表可以关联到profiles表
+ALTER TABLE post_comments 
+ADD CONSTRAINT post_comments_user_id_fkey 
+FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
 
 -- ========================================
 -- 2. 校园活动表
@@ -305,3 +313,124 @@ INSERT INTO lost_found_items (id, user_id, type, title, description, item_catego
 ('lost_001', '8768e8dc-aa31-48b7-b769-b9eb1dcdad54', 'lost', '黑色钱包丢失', '黑色折叠钱包，内有身份证、银行卡和少量现金。可能在食堂或教学楼丢失。', '钱包证件', '校园内', CURRENT_DATE - INTERVAL '2 days', '微信：zhangsan123 电话：13800138001', 'active'),
 ('found_001', '09e88732-99ae-4afc-9b7c-43048e8e3fa4', 'found', '捡到一串钥匙', '在图书馆门口捡到一串钥匙，有宿舍钥匙和自行车钥匙。', '钥匙', '图书馆门口', CURRENT_DATE - INTERVAL '1 day', '微信：lisi456 电话：13800138002', 'active')
 ON CONFLICT (id) DO NOTHING;
+
+-- 创建评论点赞表
+CREATE TABLE IF NOT EXISTS comment_likes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    comment_id UUID NOT NULL REFERENCES post_comments(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(comment_id, user_id)
+);
+
+-- 为校园动态表添加点赞和评论计数字段
+ALTER TABLE campus_posts 
+ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS comments INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS is_liked BOOLEAN DEFAULT false;
+
+-- 为评论表添加点赞状态字段
+ALTER TABLE post_comments 
+ADD COLUMN IF NOT EXISTS is_liked BOOLEAN DEFAULT false;
+
+-- 创建索引以提高查询性能
+CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON post_likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_likes_user_id ON post_likes(user_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_post_id ON post_comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_user_id ON post_comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id);
+CREATE INDEX IF NOT EXISTS idx_comment_likes_user_id ON comment_likes(user_id);
+
+-- 创建更新时间的触发器
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_post_comments_updated_at 
+    BEFORE UPDATE ON post_comments 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- 创建更新帖子点赞数的函数
+CREATE OR REPLACE FUNCTION update_post_likes_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE campus_posts 
+        SET likes = likes + 1 
+        WHERE id = NEW.post_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE campus_posts 
+        SET likes = GREATEST(0, likes - 1) 
+        WHERE id = OLD.post_id;
+    END IF;
+    RETURN NULL;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_post_likes_count_trigger
+    AFTER INSERT OR DELETE ON post_likes
+    FOR EACH ROW EXECUTE FUNCTION update_post_likes_count();
+
+-- 创建更新评论点赞数的函数
+CREATE OR REPLACE FUNCTION update_comment_likes_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE post_comments 
+        SET likes = likes + 1 
+        WHERE id = NEW.comment_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE post_comments 
+        SET likes = GREATEST(0, likes - 1) 
+        WHERE id = OLD.comment_id;
+    END IF;
+    RETURN NULL;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_comment_likes_count_trigger
+    AFTER INSERT OR DELETE ON comment_likes
+    FOR EACH ROW EXECUTE FUNCTION update_comment_likes_count();
+
+-- 创建更新帖子评论数的函数
+CREATE OR REPLACE FUNCTION update_post_comments_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE campus_posts 
+        SET comments = comments + 1 
+        WHERE id = NEW.post_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE campus_posts 
+        SET comments = GREATEST(0, comments - 1) 
+        WHERE id = OLD.post_id;
+    END IF;
+    RETURN NULL;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_post_comments_count_trigger
+    AFTER INSERT OR DELETE ON post_comments
+    FOR EACH ROW EXECUTE FUNCTION update_post_comments_count();
+
+-- 启用行级安全策略
+ALTER TABLE post_likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE post_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comment_likes ENABLE ROW LEVEL SECURITY;
+
+-- 创建安全策略
+-- 点赞策略：用户可以查看所有点赞，但只能管理自己的点赞
+CREATE POLICY "任何人都可以查看点赞" ON post_likes FOR SELECT USING (true);
+CREATE POLICY "用户只能管理自己的点赞" ON post_likes FOR ALL USING (auth.uid() = user_id);
+
+-- 评论策略：用户可以查看所有评论，但只能管理自己的评论
+CREATE POLICY "任何人都可以查看评论" ON post_comments FOR SELECT USING (true);
+CREATE POLICY "用户只能管理自己的评论" ON post_comments FOR ALL USING (auth.uid() = user_id);
+
+-- 评论点赞策略：用户可以查看所有评论点赞，但只能管理自己的点赞
+CREATE POLICY "任何人都可以查看评论点赞" ON comment_likes FOR SELECT USING (true);
+CREATE POLICY "用户只能管理自己的评论点赞" ON comment_likes FOR ALL USING (auth.uid() = user_id);

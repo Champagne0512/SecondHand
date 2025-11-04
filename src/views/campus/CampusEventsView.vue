@@ -38,7 +38,7 @@
     <!-- 活动列表 -->
     <div class="events-container">
       <div v-if="campusStore.isLoading" class="loading-container">
-        <el-loading :loading="true" text="加载中..." />
+        <el-skeleton :rows="5" animated />
       </div>
       
       <div v-else-if="filteredEvents.length > 0" class="events-grid">

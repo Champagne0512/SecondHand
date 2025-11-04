@@ -65,7 +65,7 @@
       </div>
       
       <div v-if="campusStore.isLoading" class="loading-container">
-        <el-loading :loading="true" text="加载中..." />
+        <el-skeleton :rows="5" animated />
       </div>
       
       <div v-else-if="recentPosts.length > 0" class="posts-grid">
@@ -124,7 +124,7 @@
       </div>
       
       <div v-if="campusStore.isLoading" class="loading-container">
-        <el-loading :loading="true" text="加载中..." />
+        <el-skeleton :rows="5" animated />
       </div>
       
       <div v-else-if="upcomingEvents.length > 0" class="events-grid">
@@ -169,7 +169,7 @@
       </div>
       
       <div v-if="campusStore.isLoading" class="loading-container">
-        <el-loading :loading="true" text="加载中..." />
+        <el-skeleton :rows="5" animated />
       </div>
       
       <div v-else-if="recentLostFound.length > 0" class="lost-found-grid">

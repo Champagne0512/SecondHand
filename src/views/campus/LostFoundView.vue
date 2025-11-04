@@ -39,7 +39,7 @@
     <!-- 物品列表 -->
     <div class="items-container">
       <div v-if="campusStore.isLoading" class="loading-container">
-        <el-loading :loading="true" text="加载中..." />
+        <el-skeleton :rows="5" animated />
       </div>
       
       <div v-else-if="filteredItems.length > 0" class="items-grid">

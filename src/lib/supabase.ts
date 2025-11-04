@@ -1,8 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase配置
-const supabaseUrl = 'https://zoknoksbkexongublarl.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpva25va3Nia2V4b25ndWJsYXJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExMTIxODIsImV4cCI6MjA3NjY4ODE4Mn0.5aPDhk9IdhrvIN2P7XIvt7vlCeTIRlJeNwe9_m5GMhY'
+// Supabase配置 - 从环境变量读取
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// 检查环境变量是否配置
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Supabase环境变量未配置，请检查.env文件')
+  console.log('当前环境变量:', {
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY
+  })
+}
 
 // 创建Supabase客户端
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

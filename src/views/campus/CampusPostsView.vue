@@ -42,7 +42,7 @@
     <!-- 动态列表 -->
     <div class="posts-container">
       <div v-if="campusStore.isLoading" class="loading-container">
-        <el-loading :loading="true" text="加载中..." />
+        <el-skeleton :rows="5" animated />
       </div>
       
       <div v-else-if="filteredPosts.length > 0" class="posts-list">
@@ -196,6 +196,77 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 评论对话框 -->
+    <el-dialog
+      v-model="showCommentsDialog"
+      :title="`评论 - ${currentPost?.content?.substring(0, 30)}...`"
+      width="700px"
+      :before-close="handleCloseCommentsDialog"
+    >
+      <!-- 排序选项 -->
+      <div class="sort-options">
+        <el-radio-group v-model="commentSortType" @change="handleSortChange">
+          <el-radio-button label="time">时间排序</el-radio-button>
+          <el-radio-button label="likes">点赞排序</el-radio-button>
+        </el-radio-group>
+        <el-radio-group v-model="commentSortDirection" @change="handleSortChange">
+          <el-radio-button label="desc">{{ getSortDirectionLabel() }}</el-radio-button>
+          <el-radio-button label="asc">{{ getSortDirectionLabel(true) }}</el-radio-button>
+        </el-radio-group>
+      </div>
+      
+      <!-- 评论列表 -->
+      <div class="comments-section">
+        <div v-if="comments.length > 0" class="comments-list">
+          <div 
+            v-for="comment in comments" 
+            :key="comment.id" 
+            class="comment-item"
+          >
+            <div class="comment-header">
+              <el-avatar :src="comment.userAvatar" :size="32" />
+              <div class="comment-user">
+                <span class="username">{{ comment.username }}</span>
+                <span class="comment-time">{{ formatTime(comment.createdAt) }}</span>
+              </div>
+              <el-button 
+                :type="comment.isLiked ? 'danger' : 'default'"
+                size="small"
+                @click="toggleCommentLike(comment)"
+              >
+                <el-icon><Star /></el-icon>
+                {{ comment.likes }}
+              </el-button>
+            </div>
+            <div class="comment-content">
+              {{ comment.content }}
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-comments">
+          <el-empty description="暂无评论，快来发表第一条评论吧！" />
+        </div>
+      </div>
+
+      <!-- 发表评论 -->
+      <div class="add-comment">
+        <el-input
+          v-model="newComment"
+          type="textarea"
+          :rows="3"
+          placeholder="写下你的评论..."
+          maxlength="200"
+          show-word-limit
+        />
+        <div class="comment-actions">
+          <el-button @click="handleCloseCommentsDialog">取消</el-button>
+          <el-button type="primary" @click="addComment" :disabled="!newComment.trim()">
+            发表评论
+          </el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -203,17 +274,26 @@
 import { ref, computed, onMounted } from 'vue'
 import { useCampusStore } from '@/stores/campus'
 import { ElMessage } from 'element-plus'
+import { supabase } from '@/lib/supabase'
 
-import { Plus, Search } from '@element-plus/icons-vue'
+import { Plus, Search, Star } from '@element-plus/icons-vue'
 
 const campusStore = useCampusStore()
 
 // 状态
 const searchKeyword = ref('')
 const showPublishDialog = ref(false)
+const showCommentsDialog = ref(false)
+const currentPost = ref<any>(null)
+const comments = ref<any[]>([])
+const newComment = ref('')
 const filters = ref({
   postType: 'all'
 })
+
+// 评论排序状态
+const commentSortType = ref<'time' | 'likes'>('time')
+const commentSortDirection = ref<'asc' | 'desc'>('desc')
 
 const publishForm = ref({
   type: 'text',
@@ -274,12 +354,253 @@ const publishPost = async () => {
 }
 
 const toggleLike = async (post: any) => {
-  // 实现点赞功能
-  ElMessage.info('点赞功能开发中...')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  try {
+    if (post.isLiked) {
+      // 取消点赞
+      const { error } = await supabase
+        .from('post_likes')
+        .delete()
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+      
+      // 更新本地状态
+      post.likes = Math.max(0, post.likes - 1)
+      post.isLiked = false
+      ElMessage.success('取消点赞')
+    } else {
+      // 点赞
+      const { error } = await supabase
+        .from('post_likes')
+        .insert({
+          post_id: post.id,
+          user_id: user.id
+        })
+
+      if (error) throw error
+      
+      // 更新本地状态
+      post.likes += 1
+      post.isLiked = true
+      ElMessage.success('点赞成功')
+    }
+  } catch (error: any) {
+    console.error('点赞操作失败:', error)
+    ElMessage.error('操作失败，请稍后重试')
+  }
 }
 
-const showComments = (post: any) => {
-  ElMessage.info('评论功能开发中...')
+const showComments = async (post: any) => {
+  currentPost.value = post
+  showCommentsDialog.value = true
+  await loadComments(post.id)
+}
+
+const loadComments = async (postId: string) => {
+  try {
+    // 构建排序参数 - 支持正序和倒序排列
+    let orderBy = 'created_at'
+    let ascending = commentSortDirection.value === 'asc' // 根据方向设置排序
+    
+    if (commentSortType.value === 'likes') {
+      orderBy = 'likes'
+      ascending = commentSortDirection.value === 'asc' // 根据方向设置排序
+    }
+
+    // 先查询评论数据
+    const { data: commentsData, error: commentsError } = await supabase
+      .from('post_comments')
+      .select('*')
+      .eq('post_id', postId)
+      .order(orderBy, { ascending: ascending })
+
+    if (commentsError) throw commentsError
+
+    console.log('加载的评论数据:', commentsData)
+
+    if (!commentsData || commentsData.length === 0) {
+      comments.value = []
+      return
+    }
+
+    // 获取所有用户ID
+    const userIds = [...new Set(commentsData.map(comment => comment.user_id))]
+    
+    // 查询用户信息
+    const { data: usersData, error: usersError } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .in('id', userIds)
+
+    if (usersError) {
+      console.warn('获取用户信息失败，使用默认信息:', usersError.message)
+    }
+
+    // 创建用户信息映射
+    const userMap = new Map()
+    if (usersData) {
+      usersData.forEach(user => {
+        userMap.set(user.id, {
+          username: user.username || '匿名用户',
+          avatar_url: user.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+        })
+      })
+    }
+
+    // 处理评论数据
+    comments.value = commentsData.map(comment => {
+      const userInfo = userMap.get(comment.user_id) || {
+        username: '匿名用户',
+        avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+      }
+
+      return {
+        id: comment.id,
+        postId: comment.post_id,
+        userId: comment.user_id,
+        username: userInfo.username,
+        userAvatar: userInfo.avatar_url,
+        content: comment.content,
+        likes: comment.likes || 0,
+        isLiked: comment.is_liked || false,
+        createdAt: comment.created_at,
+        updatedAt: comment.updated_at
+      }
+    })
+
+    console.log('处理后的评论列表:', comments.value)
+  } catch (error) {
+    console.error('加载评论失败:', error)
+    comments.value = []
+  }
+}
+
+// 排序变更处理
+const handleSortChange = () => {
+  if (currentPost.value) {
+    loadComments(currentPost.value.id)
+  }
+}
+
+// 获取排序方向标签
+const getSortDirectionLabel = (isAsc = false) => {
+  const direction = isAsc ? 'asc' : commentSortDirection.value
+  if (commentSortType.value === 'time') {
+    return direction === 'desc' ? '最新在前' : '最早在前'
+  } else {
+    return direction === 'desc' ? '最多在前' : '最少在前'
+  }
+}
+
+const addComment = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  if (!newComment.value.trim()) {
+    ElMessage.warning('请输入评论内容')
+    return
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('post_comments')
+      .insert({
+        post_id: currentPost.value.id,
+        user_id: user.id,
+        content: newComment.value.trim()
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // 添加到本地列表
+    comments.value.unshift({
+      id: data.id,
+      postId: data.post_id,
+      userId: data.user_id,
+      username: '当前用户',
+      userAvatar: '/src/assets/default-avatar.png',
+      content: data.content,
+      likes: 0,
+      isLiked: false,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    })
+
+    // 更新帖子评论数
+    currentPost.value.comments += 1
+    
+    newComment.value = ''
+    ElMessage.success('评论发表成功')
+  } catch (error: any) {
+    console.error('发表评论失败:', error)
+    ElMessage.error('发表失败，请稍后重试')
+  }
+}
+
+const toggleCommentLike = async (comment: any) => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  try {
+    if (comment.isLiked) {
+      // 取消点赞
+      const { error } = await supabase
+        .from('comment_likes')
+        .delete()
+        .eq('comment_id', comment.id)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+      
+      // 更新本地状态
+      comment.likes = Math.max(0, comment.likes - 1)
+      comment.isLiked = false
+      ElMessage.success('取消点赞')
+    } else {
+      // 点赞
+      const { error } = await supabase
+        .from('comment_likes')
+        .insert({
+          comment_id: comment.id,
+          user_id: user.id
+        })
+
+      if (error) throw error
+      
+      // 更新本地状态
+      comment.likes += 1
+      comment.isLiked = true
+      ElMessage.success('点赞成功')
+    }
+  } catch (error: any) {
+    console.error('评论点赞操作失败:', error)
+    ElMessage.error('操作失败，请稍后重试')
+  }
+}
+
+const handleCloseCommentsDialog = () => {
+  showCommentsDialog.value = false
+  currentPost.value = null
+  comments.value = []
+  newComment.value = ''
+  // 重置排序状态为默认值
+  commentSortType.value = 'time'
+  commentSortDirection.value = 'desc'
 }
 
 const sharePost = (post: any) => {
@@ -672,5 +993,134 @@ const formatTime = (timeString: string) => {
   .post-images {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* 排序选项样式 */
+.sort-options {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.sort-options .el-radio-group {
+  display: flex;
+  gap: 8px;
+}
+
+.sort-options .el-radio-button {
+  --el-radio-button-checked-bg-color: #409eff;
+  --el-radio-button-checked-text-color: #fff;
+  --el-radio-button-checked-border-color: #409eff;
+}
+
+/* 响应式设计 - 排序选项 */
+@media (max-width: 768px) {
+  .sort-options {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .sort-options .el-radio-group {
+    justify-content: center;
+  }
+  
+  .sort-options .el-radio-button {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* 评论对话框样式 */
+.comments-section {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comment-item {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e9ecef;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.comment-user {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.comment-user .username {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.95rem;
+}
+
+.comment-user .comment-time {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.comment-content {
+  color: #444;
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.empty-comments {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.add-comment {
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
+}
+
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* 滚动条样式 */
+.comments-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.comments-section::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.comments-section::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 </style>
