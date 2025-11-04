@@ -725,6 +725,40 @@ onMounted(async () => {
   100% { background-position: 200px 0; }
 }
 
+/* 响应式设计 - 防止标题换行 */
+@media (max-width: 1200px) {
+  .banner-title {
+    font-size: 5rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .banner-title {
+    font-size: 4rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .banner-title {
+    font-size: 3rem;
+    white-space: normal; /* 在小屏幕上允许换行 */
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
+@media (max-width: 576px) {
+  .banner-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .banner-title {
+    font-size: 2rem;
+  }
+}
+
 .container {
   max-width: 1400px;
   margin: 0 auto;
@@ -810,6 +844,9 @@ onMounted(async () => {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   text-align: center;
   max-width: 100%;
+  white-space: nowrap; /* 防止文字换行 */
+  overflow: hidden; /* 隐藏溢出内容 */
+  text-overflow: ellipsis; /* 溢出显示省略号 */
   animation: 
     slideInLeft 1s ease-out 0.3s both,
     textGlow 2s ease-in-out infinite 0.5s;

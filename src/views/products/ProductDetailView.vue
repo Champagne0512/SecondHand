@@ -477,8 +477,10 @@ onMounted(async () => {
 .product-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
+  flex-wrap: nowrap;
+  min-width: 0; /* 允许子元素溢出时被截断 */
 }
 
 .product-title {
@@ -487,6 +489,10 @@ onMounted(async () => {
   color: #303133;
   margin: 0;
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0; /* 允许文本溢出时被截断 */
 }
 
 .product-status {
@@ -722,8 +728,26 @@ onMounted(async () => {
   }
   
   .product-header {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 12px;
+    min-width: 0;
+  }
+  
+  .product-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 18px;
+    min-width: 0;
+    flex-shrink: 1; /* 允许标题在必要时缩小 */
+  }
+  
+  .product-status {
+    font-size: 12px;
+    padding: 3px 8px;
+    flex-shrink: 0; /* 状态标签不缩小 */
   }
   
   .product-meta {
