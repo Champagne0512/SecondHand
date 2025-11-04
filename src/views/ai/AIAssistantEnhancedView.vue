@@ -193,6 +193,10 @@
                     />
                   </el-form-item>
                   
+                  <el-form-item label="商品品牌">
+                    <el-input v-model="priceForm.brand" placeholder="输入商品品牌，如：苹果、华为、小米等" />
+                  </el-form-item>
+                  
                   <el-form-item label="商品成色">
                     <el-radio-group v-model="priceForm.condition">
                       <el-radio label="全新">全新</el-radio>
@@ -1013,6 +1017,7 @@ const descriptionForm = reactive({
 // 价格分析表单
 const priceForm = reactive({
   category: [],
+  brand: '',
   condition: '九成新',
   usageMonths: 6,
   originalPrice: 0,
@@ -1134,41 +1139,29 @@ const analyzePrice = async () => {
   isAnalyzingPrice.value = true
   try {
     const productData = {
+      title: '',
       category: priceForm.category.join('/'),
       condition: priceForm.condition,
       usageTime: priceForm.usageMonths,
       originalPrice: priceForm.originalPrice,
-      targetPrice: priceForm.targetPrice
+      brand: priceForm.brand
     }
 
-    const analysis = await aiStore.analyzeProductPrice(productData)
+    // 使用价格分析store，确保调用工作流AI助手
+    const result = await priceStore.evaluateProductPrice(productData)
     
-    // 解析分析结果（这里简化处理，实际应该解析AI返回的结构化数据）
+    // 使用AI分析结果
     priceAnalysisResult.value = {
-      suggestedPrice: Math.round(priceForm.originalPrice * 0.7),
-      priceRange: {
-        min: Math.round(priceForm.originalPrice * 0.6),
-        max: Math.round(priceForm.originalPrice * 0.8)
-      },
-      confidence: 85,
-      factors: [
-        '商品成色良好，价格系数0.85',
-        '使用时间适中，价格系数0.8',
-        '品牌保值率高',
-        '市场供需平衡'
-      ],
-      marketData: {
-        similarProductsCount: 23,
-        averageMarketPrice: Math.round(priceForm.originalPrice * 0.75),
-        priceRange: {
-          min: Math.round(priceForm.originalPrice * 0.5),
-          max: Math.round(priceForm.originalPrice * 0.9)
-        }
-      }
+      suggestedPrice: result.suggestedPrice,
+      priceRange: result.priceRange,
+      confidence: result.confidence,
+      factors: result.factors,
+      marketData: result.marketData,
+      aiAnalysis: result.aiAnalysis
     }
     
     addChatMessage('user', `请分析我的${priceForm.category.join('/')}价格是否合理`)
-    addChatMessage('ai', analysis)
+    addChatMessage('ai', result.aiAnalysis || `基于市场数据分析，建议售价为¥${result.suggestedPrice}`)
     
     ElMessage.success('价格分析完成！')
   } catch (error: any) {

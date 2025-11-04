@@ -41,6 +41,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '发布商品', requiresAuth: true }
   },
   {
+    path: '/products/edit/:id',
+    name: 'EditProduct',
+    component: () => import('@/views/products/EditProductView.vue'),
+    meta: { title: '编辑商品', requiresAuth: true }
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/user/ProfileView.vue'),
@@ -100,14 +106,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/AdminLogin.vue'),
     meta: { 
       title: '管理员登录 - 校园二手交易平台'
-    }
-  },
-  {
-    path: '/admin/test',
-    name: 'AdminTest',
-    component: () => import('@/views/admin/AdminTest.vue'),
-    meta: { 
-      title: '管理员权限测试 - 校园二手交易平台'
     }
   },
   {

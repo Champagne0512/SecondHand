@@ -391,6 +391,136 @@ export const useProductStore = defineStore('products', () => {
     }
   }
 
+  // 更新商品
+  const updateProduct = async (id: string, data: any) => {
+    isLoading.value = true
+    try {
+      const userStore = useUserStore()
+      if (!userStore.user) throw new Error('用户未登录')
+
+      console.log('开始更新商品，ID:', id, '数据:', data)
+
+      // 检查权限：只能更新自己的商品
+      const product = products.value.find(p => p.id === id)
+      if (!product) throw new Error('商品不存在')
+      if (product.sellerId !== userStore.user.id) throw new Error('无权修改此商品')
+
+      // 处理图片上传（如果有新图片）
+      let imageUrls: string[] = []
+      
+      if (data.images && data.images.length > 0) {
+        for (let i = 0; i < data.images.length; i++) {
+          const imageFile = data.images[i]
+          
+          if (typeof imageFile === 'string') {
+            // 如果是字符串（已存在的图片URL），直接使用
+            imageUrls.push(imageFile)
+          } else if (imageFile instanceof File) {
+            // 如果是新上传的文件，需要上传到Supabase
+            try {
+              const fileName = `${Date.now()}_${i}_${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+              const filePath = `product-images/${userStore.user.id}/${fileName}`
+              
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('product-images')
+                .upload(filePath, imageFile, {
+                  cacheControl: '3600',
+                  upsert: false
+                })
+
+              if (uploadError) {
+                console.error(`图片上传失败:`, uploadError)
+                continue
+              }
+
+              const { data: { publicUrl } } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(filePath)
+
+              imageUrls.push(publicUrl)
+            } catch (imageError) {
+              console.error(`处理图片失败:`, imageError)
+              continue
+            }
+          }
+        }
+      }
+
+      // 如果没有图片，保留原有图片
+      if (imageUrls.length === 0 && product.images) {
+        imageUrls = product.images
+      }
+
+      // 准备更新数据
+      const updateData = {
+        ...data,
+        images: imageUrls.length > 0 ? imageUrls : product.images
+      }
+
+      console.log('准备更新商品数据:', updateData)
+
+      // 调用API更新商品
+      const result = await supabaseProductApi.updateProduct(id, updateData)
+      
+      console.log('商品更新成功:', result)
+
+      // 更新本地状态
+      const index = products.value.findIndex(p => p.id === id)
+      if (index !== -1) {
+        products.value[index] = {
+          ...products.value[index],
+          ...result,
+          sellerName: userStore.user.username,
+          sellerAvatar: userStore.user.avatar
+        }
+      }
+
+      return { success: true, message: '商品更新成功', product: products.value[index] }
+    } catch (error: any) {
+      console.error('商品更新失败:', error)
+      return { 
+        success: false, 
+        message: error.message || '商品更新失败' 
+      }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // 删除商品
+  const deleteProduct = async (id: string) => {
+    isLoading.value = true
+    try {
+      const userStore = useUserStore()
+      if (!userStore.user) throw new Error('用户未登录')
+
+      console.log('开始删除商品，ID:', id)
+
+      // 检查权限：只能删除自己的商品
+      const product = products.value.find(p => p.id === id)
+      if (!product) throw new Error('商品不存在')
+      if (product.sellerId !== userStore.user.id) throw new Error('无权删除此商品')
+
+      // 调用API删除商品
+      await supabaseProductApi.deleteProduct(id)
+      
+      console.log('商品删除成功')
+
+      // 从本地状态中移除
+      products.value = products.value.filter(p => p.id !== id)
+
+      return { success: true, message: '商品删除成功' }
+    } catch (error: any) {
+      console.error('商品删除失败:', error)
+      return { 
+        success: false, 
+        message: error.message || '商品删除失败' 
+      }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   // 更新筛选条件
   const updateFilter = (newFilter: ProductFilter) => {
     filter.value = { ...filter.value, ...newFilter }
@@ -516,6 +646,8 @@ export const useProductStore = defineStore('products', () => {
     fetchProducts,
     fetchProductDetail,
     publishProduct,
+    updateProduct,
+    deleteProduct,
     updateFilter,
     clearFilter
   }

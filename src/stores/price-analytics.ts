@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
+import { useAIAssistantEnhancedStore } from './ai-assistant-enhanced'
 
 // 价格分析store
 export const usePriceAnalyticsStore = defineStore('priceAnalytics', () => {
@@ -110,7 +111,7 @@ export const usePriceAnalyticsStore = defineStore('priceAnalytics', () => {
     }
   }
 
-  // 商品价格评估
+  // 商品价格评估 - 使用工作流AI助手
   const evaluateProductPrice = async (productData: {
     title: string
     category: string
@@ -121,106 +122,103 @@ export const usePriceAnalyticsStore = defineStore('priceAnalytics', () => {
     features?: string[]
   }) => {
     try {
-      // 获取同类商品的平均价格
-      const { data: similarProducts, error } = await supabase
-        .from('products')
-        .select('price, condition, created_at')
-        .eq('category', productData.category)
-        .eq('status', 'available')
-        .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
-
-      if (error) throw error
-
-      if (!similarProducts || similarProducts.length === 0) {
-        const result = {
-          suggestedPrice: productData.originalPrice ? Math.round(productData.originalPrice * 0.7) : 0,
-          priceRange: { min: 0, max: 0 },
-          confidence: 0,
-          factors: ['无同类商品数据']
-        }
-        priceEvaluation.value = result
-        return result
-      }
-
-      // 计算基础价格
-      const prices = similarProducts.map(p => p.price)
-      const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length
+      // 使用工作流AI助手进行价格分析
+      const aiStore = useAIAssistantEnhancedStore()
       
-      // 基于商品状况调整价格
-      let conditionMultiplier = 1.0
-      switch (productData.condition) {
-        case '全新':
-          conditionMultiplier = 0.95
-          break
-        case '几乎全新':
-          conditionMultiplier = 0.85
-          break
-        case '轻微使用':
-          conditionMultiplier = 0.75
-          break
-        case '明显使用':
-          conditionMultiplier = 0.6
-          break
-        default:
-          conditionMultiplier = 0.7
-      }
+      // 构建价格分析提示词，包含品牌信息
+      const prompt = `请分析以下商品的价格合理性：
 
-      // 基于使用时间调整价格
-      let usageMultiplier = 1.0
-      if (productData.usageTime) {
-        if (productData.usageTime <= 3) {
-          usageMultiplier = 0.95
-        } else if (productData.usageTime <= 12) {
-          usageMultiplier = 0.85
-        } else if (productData.usageTime <= 24) {
-          usageMultiplier = 0.75
-        } else {
-          usageMultiplier = 0.6
-        }
-      }
+商品信息：
+- 分类：${productData.category}
+- 成色：${productData.condition}
+- 使用时间：${productData.usageTime || 0}个月
+- 原价：${productData.originalPrice || 0}元
+- 品牌：${productData.brand || '未指定'}
+- 特色：${productData.features?.join(', ') || '未指定'}
 
-      // 计算建议价格
-      const suggestedPrice = Math.round(avgPrice * conditionMultiplier * usageMultiplier)
+请基于校园二手交易市场数据，提供：
+1. 建议售价范围（考虑品牌因素）
+2. 价格影响因素分析（特别关注品牌影响）
+3. 市场竞争力评估
+4. 成交建议
+
+请用数据和市场逻辑支撑您的分析，特别关注品牌对价格的影响。`
+
+      // 调用工作流AI助手
+      const response = await aiStore.sendMessage(prompt, {
+        userIntent: 'price_analysis',
+        productInfo: productData
+      })
+
+      // 解析AI回复，提取关键信息
+      const aiResponse = response.content
       
-      // 计算价格区间
-      const minPrice = Math.round(suggestedPrice * 0.8)
-      const maxPrice = Math.round(suggestedPrice * 1.2)
+      // 从AI回复中提取价格信息
+      const priceMatch = aiResponse.match(/建议售价[：:]\s*¥?(\d+)/) || 
+                        aiResponse.match(/价格[：:]\s*¥?(\d+)/)
+      
+      const suggestedPrice = priceMatch ? parseInt(priceMatch[1]) : 
+        (productData.originalPrice ? Math.round(productData.originalPrice * 0.7) : 0)
 
-      // 计算置信度
-      const priceVariance = calculateVariance(prices)
-      const confidence = Math.max(0, Math.min(100, 100 - (priceVariance / avgPrice) * 100))
+      // 提取价格区间
+      const rangeMatch = aiResponse.match(/¥?(\d+)\s*-\s*¥?(\d+)/)
+      const priceRange = rangeMatch ? 
+        { min: parseInt(rangeMatch[1]), max: parseInt(rangeMatch[2]) } :
+        { min: Math.round(suggestedPrice * 0.8), max: Math.round(suggestedPrice * 1.2) }
 
-      // 影响因素
+      // 提取影响因素
       const factors = []
-      if (conditionMultiplier < 0.8) factors.push('商品成色影响价格')
-      if (usageMultiplier < 0.8) factors.push('使用时间影响价格')
-      if (similarProducts.length < 5) factors.push('同类商品数据较少')
-      if (confidence < 70) factors.push('市场价格波动较大')
+      if (productData.brand && productData.brand.trim() !== '') {
+        factors.push('品牌溢价影响价格')
+      }
+      if (productData.condition !== '全新') {
+        factors.push('商品成色影响价格')
+      }
+      if (productData.usageTime && productData.usageTime > 0) {
+        factors.push('使用时间影响价格')
+      }
+      if (factors.length === 0) {
+        factors.push('市场价格波动影响')
+      }
+
+      // 基于品牌调整置信度
+      let confidence = 75
+      if (productData.brand && productData.brand.trim() !== '') {
+        const premiumBrands = ['苹果', 'apple', 'iphone', 'macbook', '华为', 'huawei', '三星', 'samsung', '索尼', 'sony']
+        const brandLower = productData.brand.toLowerCase()
+        if (premiumBrands.some(brand => brandLower.includes(brand))) {
+          confidence = 85  // 知名品牌数据更可靠
+        }
+      }
 
       const result = {
         suggestedPrice,
-        priceRange: { min: minPrice, max: maxPrice },
-        confidence: Math.round(confidence),
+        priceRange,
+        confidence,
         factors,
         marketData: {
-          similarProductsCount: similarProducts.length,
-          averageMarketPrice: Math.round(avgPrice),
-          priceRange: {
-            min: Math.round(Math.min(...prices)),
-            max: Math.round(Math.max(...prices))
-          }
-        }
+          similarProductsCount: 0,
+          averageMarketPrice: suggestedPrice,
+          priceRange
+        },
+        aiAnalysis: aiResponse  // 保留完整的AI分析内容
       }
       
       priceEvaluation.value = result
       return result
     } catch (error) {
       console.error('价格评估失败:', error)
+      // 备用方案：使用算法分析
       const result = {
-        suggestedPrice: 0,
+        suggestedPrice: productData.originalPrice ? Math.round(productData.originalPrice * 0.7) : 0,
         priceRange: { min: 0, max: 0 },
         confidence: 0,
-        factors: ['评估失败']
+        factors: ['评估失败，使用备用算法'],
+        marketData: {
+          similarProductsCount: 0,
+          averageMarketPrice: 0,
+          priceRange: { min: 0, max: 0 }
+        }
       }
       priceEvaluation.value = result
       return result

@@ -187,11 +187,13 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
+import { supabaseProductApi } from '@/api/supabase'
 import GlobalNavigation from '@/components/GlobalNavigation.vue'
 import { 
   ShoppingBag, User, Goods, Star, 
   ChatDotRound, Plus 
 } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadProps } from 'element-plus'
 
 const router = useRouter()
@@ -222,6 +224,42 @@ const myProducts = computed(() => {
   if (!userStore.userInfo) return []
   return productStore.products.filter(p => p.sellerId === userStore.userInfo!.id)
 })
+
+// 获取我的商品
+const fetchMyProducts = async () => {
+  try {
+    const result = await supabaseProductApi.getMyProducts()
+    if (result) {
+      // 转换数据格式
+      const transformedProducts = result.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        price: item.price,
+        originalPrice: item.original_price,
+        category: item.category,
+        images: item.images,
+        condition: item.condition,
+        sellerId: item.seller_id,
+        sellerName: userStore.userInfo?.username || '我',
+        sellerAvatar: userStore.userInfo?.avatar_url,
+        status: item.status,
+        location: item.location,
+        contactInfo: item.contact_info,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        viewCount: item.view_count || 0,
+        likeCount: item.like_count || 0
+      }))
+      
+      // 更新到store中
+      productStore.products = transformedProducts
+    }
+  } catch (error) {
+    console.error('获取我的商品失败:', error)
+    ElMessage.error('获取商品列表失败')
+  }
+}
 
 // 收藏商品（模拟数据）
 const favoriteProducts = computed(() => {
@@ -290,25 +328,63 @@ const handleResetForm = () => {
 
 // 编辑商品
 const handleEditProduct = (product: any) => {
-  ElMessage.info('商品编辑功能开发中')
+  // 跳转到编辑页面，传递商品ID
+  router.push(`/products/edit/${product.id}`)
 }
 
 // 删除商品
-const handleDeleteProduct = (product: any) => {
-  ElMessageBox.confirm('确定要删除这个商品吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    ElMessage.success('商品删除成功')
-  }).catch(() => {
-    // 用户取消删除
-  })
+const handleDeleteProduct = async (product: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除商品 "${product.title}" 吗？此操作不可恢复！`,
+      '确认删除',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'error',
+        confirmButtonClass: 'el-button--danger',
+        beforeClose: (action, instance, done) => {
+          if (action === 'confirm') {
+            instance.confirmButtonLoading = true
+            instance.confirmButtonText = '删除中...'
+            setTimeout(() => {
+              done()
+            }, 300)
+          } else {
+            done()
+          }
+        }
+      }
+    )
+    
+    // 调用删除商品API
+    const result = await productStore.deleteProduct(product.id)
+    
+    if (result.success) {
+      ElMessage.success(result.message)
+      // 重新加载我的商品列表
+      await fetchMyProducts()
+    } else {
+      ElMessage.error(result.message)
+    }
+  } catch (error) {
+    // 用户取消删除或其他错误
+    if (error !== 'cancel') {
+      console.error('删除商品失败:', error)
+      ElMessage.error('删除商品失败，请重试')
+    }
+  }
 }
 
 onMounted(async () => {
   await userStore.initUser()
-  await productStore.fetchProducts()
+  
+  // 根据当前标签页加载不同的数据
+  if (activeTab.value === 'my-products') {
+    await fetchMyProducts()
+  } else {
+    await productStore.fetchProducts()
+  }
   
   // 初始化表单数据
   if (userStore.userInfo) {

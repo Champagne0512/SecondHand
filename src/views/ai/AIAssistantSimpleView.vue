@@ -194,6 +194,10 @@
                   </el-select>
                 </el-form-item>
                 
+                <el-form-item label="商品品牌">
+                  <el-input v-model="priceForm.brand" placeholder="输入商品品牌，如：苹果、华为、小米等" />
+                </el-form-item>
+                
                 <el-form-item label="成色">
                   <el-select v-model="priceForm.condition" placeholder="选择成色">
                     <el-option label="全新" value="全新" />
@@ -263,8 +267,10 @@ import FloatingAIAssistant from '@/components/FloatingAIAssistant.vue'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import FloatingAIAssistantEnhanced from '@/components/FloatingAIAssistantEnhanced.vue'
 import { useAIAssistantEnhancedStore } from '@/stores/ai-assistant-enhanced'
+import { usePriceAnalyticsStore } from '@/stores/price-analytics'
 
 const aiStore = useAIAssistantEnhancedStore()
+const priceStore = usePriceAnalyticsStore()
 
 // 聊天相关
 const userInput = ref('')
@@ -299,6 +305,7 @@ const descriptionForm = ref({
 // 价格分析表单
 const priceForm = ref({
   category: '',
+  brand: '',
   condition: '',
   originalPrice: 0,
   usageMonths: 0
@@ -411,24 +418,32 @@ const analyzePrice = async () => {
   
   isAnalyzingPrice.value = true
   try {
-    const prompt = `请分析以下商品的价格合理性：
-
-商品信息：
-- 分类：${priceForm.value.category}
-- 成色：${priceForm.value.condition}
-- 使用时间：${priceForm.value.usageMonths}个月
-- 原价：${priceForm.value.originalPrice}元
-
-请提供：
-1. 建议售价范围
-2. 价格影响因素分析
-3. 市场竞争力评估
-4. 成交建议
-
-请用数据和市场逻辑支撑您的分析。`
+    const result = await priceStore.evaluateProductPrice({
+      title: '',
+      category: priceForm.value.category,
+      condition: priceForm.value.condition || '几乎全新',
+      originalPrice: priceForm.value.originalPrice,
+      usageTime: priceForm.value.usageMonths,
+      brand: priceForm.value.brand
+    })
     
-    const response = await aiStore.sendMessage(prompt)
-    priceAnalysis.value = response.content
+    // 格式化价格分析结果
+    priceAnalysis.value = `📊 AI价格分析报告
+
+💵 建议售价：¥${result.suggestedPrice}
+📈 合理价格区间：¥${result.priceRange.min} - ¥${result.priceRange.max}
+🎯 分析置信度：${result.confidence}%
+
+📋 影响因素：
+${result.factors.map(factor => `• ${factor}`).join('\n')}
+
+📊 市场数据：
+• 同类商品数量：${result.marketData.similarProductsCount}个
+• 市场平均价格：¥${result.marketData.averageMarketPrice}
+• 市场价格范围：¥${result.marketData.priceRange.min} - ¥${result.marketData.priceRange.max}
+
+💡 交易建议：
+${result.confidence >= 70 ? '✅ 价格分析可靠，建议参考此价格进行交易' : '⚠️ 数据有限，建议结合市场行情调整价格'}`
     
     ElMessage.success('价格分析完成！')
   } catch (error: any) {

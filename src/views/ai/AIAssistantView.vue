@@ -173,6 +173,10 @@
               </el-select>
             </el-form-item>
             
+            <el-form-item label="商品品牌">
+              <el-input v-model="priceForm.brand" placeholder="输入商品品牌，如：苹果、华为、小米等" />
+            </el-form-item>
+            
             <el-form-item label="商品成色">
               <el-select v-model="priceForm.condition" placeholder="选择成色">
                 <el-option label="全新" value="全新" />
@@ -349,6 +353,7 @@ const productForm = ref({
 
 const priceForm = ref({
   category: '',
+  brand: '',
   condition: '',
   usageTime: 0,
   originalPrice: 0
