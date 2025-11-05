@@ -160,7 +160,7 @@ import { useCartStore } from '@/stores/cart'
 import { ElMessage } from 'element-plus'
 
 import { 
-  ShoppingBag, ChatDotRound, Star, Share, ShoppingCart
+  ChatDotRound, Star, Share, ShoppingCart
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -680,6 +680,7 @@ onMounted(async () => {
   color: #303133;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

@@ -187,12 +187,50 @@
             <el-option label="活动" value="活动" />
           </el-select>
         </el-form-item>
+
+        <!-- 图片上传 -->
+        <el-form-item label="动态图片">
+          <el-upload
+            action="#"
+            list-type="picture-card"
+            :file-list="imageList"
+            :before-upload="beforeImageUpload"
+            :on-remove="handleImageRemove"
+            :on-change="handleImageChange"
+            :auto-upload="false"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
+          <div class="upload-tip">
+            支持 JPG、PNG 格式，单张图片不超过 5MB，最多可上传 9 张图片
+          </div>
+        </el-form-item>
+
+        <!-- 图片上传 -->
+        <el-form-item label="动态图片">
+          <el-upload
+            action="#"
+            list-type="picture-card"
+            :file-list="imageList"
+            :before-upload="beforeImageUpload"
+            :on-remove="handleImageRemove"
+            :on-change="handleImageChange"
+            :auto-upload="false"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
+          <div class="upload-tip">
+            支持 JPG、PNG 格式，单张图片不超过 5MB，最多可上传 9 张图片
+          </div>
+        </el-form-item>
       </el-form>
       
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="showPublishDialog = false">取消</el-button>
-          <el-button type="primary" @click="publishPost">发布</el-button>
+          <el-button type="primary" @click="publishPost" :loading="isUploading">
+            {{ isUploading ? '发布中...' : '发布' }}
+          </el-button>
         </span>
       </template>
     </el-dialog>
@@ -275,6 +313,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useCampusStore } from '@/stores/campus'
 import { ElMessage } from 'element-plus'
 import { supabase } from '@/lib/supabase'
+import type { UploadProps, UploadUserFile } from 'element-plus'
 
 import { Plus, Search, Star } from '@element-plus/icons-vue'
 
@@ -301,6 +340,18 @@ const publishForm = ref({
   location: '',
   tags: []
 })
+
+// 图片上传相关
+const imageList = ref<UploadUserFile[]>([])
+const isUploading = ref(false)
+
+// 图片上传相关
+const imageList = ref<UploadUserFile[]>([])
+const isUploading = ref(false)
+
+// 图片上传相关
+const imageList = ref<UploadUserFile[]>([])
+const isUploading = ref(false)
 
 // 计算属性
 const filteredPosts = computed(() => {
@@ -333,14 +384,100 @@ const handleSearch = () => {
   // 搜索功能已在计算属性中实现
 }
 
+// 图片上传前验证
+const beforeImageUpload: UploadProps['beforeUpload'] = (rawFile) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+  const maxSize = 5 * 1024 * 1024 // 5MB
+  
+  if (!allowedTypes.includes(rawFile.type)) {
+    ElMessage.error('只支持 JPG、PNG、GIF、WebP 格式的图片')
+    return false
+  }
+  
+  if (rawFile.size > maxSize) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return false
+  }
+  
+  // 检查图片数量限制
+  if (imageList.value.length >= 9) {
+    ElMessage.error('最多只能上传 9 张图片')
+    return false
+  }
+  
+  return true
+}
+
+// 图片移除
+const handleImageRemove: UploadProps['onRemove'] = (file) => {
+  const index = imageList.value.findIndex(item => item.uid === file.uid)
+  if (index !== -1) {
+    imageList.value.splice(index, 1)
+  }
+}
+
+// 图片变化
+const handleImageChange: UploadProps['onChange'] = (file) => {
+  // 这里可以添加图片预览逻辑
+  console.log('图片变化:', file)
+}
+
+// 上传图片到Supabase
+const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
+  const uploadedUrls: string[] = []
+  
+  for (const file of files) {
+    if (!file.raw) continue
+    
+    try {
+      // 生成唯一文件名
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${file.name.split('.').pop()}`
+      
+      // 上传到Supabase存储桶
+      const { data, error } = await supabase.storage
+        .from('campus-posts')
+        .upload(fileName, file.raw)
+      
+      if (error) throw error
+      
+      // 获取公开URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('campus-posts')
+        .getPublicUrl(fileName)
+      
+      uploadedUrls.push(publicUrl)
+    } catch (error) {
+      console.error('图片上传失败:', error)
+      throw new Error('图片上传失败')
+    }
+  }
+  
+  return uploadedUrls
+}
+
 const publishPost = async () => {
   if (!publishForm.value.content.trim()) {
     ElMessage.warning('请输入动态内容')
     return
   }
   
+  isUploading.value = true
+  
   try {
-    const result = await campusStore.publishCampusPost(publishForm.value)
+    let imageUrls: string[] = []
+    
+    // 如果有图片需要上传
+    if (imageList.value.length > 0) {
+      ElMessage.info('正在上传图片...')
+      imageUrls = await uploadImages(imageList.value)
+    }
+    
+    // 发布动态，包含图片URL
+    const result = await campusStore.publishCampusPost({
+      ...publishForm.value,
+      images: imageUrls
+    })
+    
     if (result.success) {
       ElMessage.success('动态发布成功！')
       showPublishDialog.value = false
@@ -348,8 +485,11 @@ const publishPost = async () => {
     } else {
       ElMessage.error(result.message)
     }
-  } catch (error) {
-    ElMessage.error('发布失败，请稍后重试')
+  } catch (error: any) {
+    console.error('发布动态失败:', error)
+    ElMessage.error(error.message || '发布失败，请稍后重试')
+  } finally {
+    isUploading.value = false
   }
 }
 
@@ -635,6 +775,7 @@ const resetPublishForm = () => {
     location: '',
     tags: []
   }
+  imageList.value = []
 }
 
 const getPostTypeTag = (type: string) => {
@@ -1122,5 +1263,101 @@ const formatTime = (timeString: string) => {
 
 .comments-section::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* 图片上传样式 */
+.upload-tip {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+/* 图片上传卡片样式 */
+:deep(.el-upload--picture-card) {
+  background-color: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-upload--picture-card:hover) {
+  border-color: #409eff;
+}
+
+:deep(.el-upload-list--picture-card .el-upload-list__item) {
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-upload-list--picture-card .el-upload-list__item:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 图片上传样式 */
+.upload-tip {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+/* 图片上传卡片样式 */
+:deep(.el-upload--picture-card) {
+  background-color: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-upload--picture-card:hover) {
+  border-color: #409eff;
+}
+
+:deep(.el-upload-list--picture-card .el-upload-list__item) {
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-upload-list--picture-card .el-upload-list__item:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 图片上传样式 */
+.upload-tip {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+/* 图片上传卡片样式 */
+:deep(.el-upload--picture-card) {
+  background-color: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-upload--picture-card:hover) {
+  border-color: #409eff;
+}
+
+:deep(.el-upload-list--picture-card .el-upload-list__item) {
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-upload-list--picture-card .el-upload-list__item:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 </style>
