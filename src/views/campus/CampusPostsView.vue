@@ -205,24 +205,6 @@
             支持 JPG、PNG 格式，单张图片不超过 5MB，最多可上传 9 张图片
           </div>
         </el-form-item>
-
-        <!-- 图片上传 -->
-        <el-form-item label="动态图片">
-          <el-upload
-            action="#"
-            list-type="picture-card"
-            :file-list="imageList"
-            :before-upload="beforeImageUpload"
-            :on-remove="handleImageRemove"
-            :on-change="handleImageChange"
-            :auto-upload="false"
-          >
-            <el-icon><Plus /></el-icon>
-          </el-upload>
-          <div class="upload-tip">
-            支持 JPG、PNG 格式，单张图片不超过 5MB，最多可上传 9 张图片
-          </div>
-        </el-form-item>
       </el-form>
       
       <template #footer>
@@ -345,14 +327,6 @@ const publishForm = ref({
 const imageList = ref<UploadUserFile[]>([])
 const isUploading = ref(false)
 
-// 图片上传相关
-const imageList = ref<UploadUserFile[]>([])
-const isUploading = ref(false)
-
-// 图片上传相关
-const imageList = ref<UploadUserFile[]>([])
-const isUploading = ref(false)
-
 // 计算属性
 const filteredPosts = computed(() => {
   let posts = campusStore.filteredPosts
@@ -417,38 +391,78 @@ const handleImageRemove: UploadProps['onRemove'] = (file) => {
 }
 
 // 图片变化
-const handleImageChange: UploadProps['onChange'] = (file) => {
-  // 这里可以添加图片预览逻辑
-  console.log('图片变化:', file)
+const handleImageChange: UploadProps['onChange'] = (file, fileList) => {
+  console.log('图片变化:', file, '文件列表:', fileList)
+  
+  // 更新imageList，确保包含所有已选择的文件
+  imageList.value = fileList.map(f => ({
+    ...f,
+    // 确保每个文件都有uid和raw属性
+    uid: f.uid || `file-${Date.now()}-${Math.random().toString(36).substring(2)}`,
+    raw: f.raw || f
+  }))
+  
+  console.log('更新后的imageList:', imageList.value)
+}
+
+// 检查存储桶是否存在
+const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.storage.getBucket(bucketName)
+    if (error) {
+      console.warn(`存储桶 ${bucketName} 不存在或无法访问:`, error.message)
+      return false
+    }
+    console.log(`存储桶 ${bucketName} 存在:`, data)
+    return true
+  } catch (error) {
+    console.error(`检查存储桶 ${bucketName} 失败:`, error)
+    return false
+  }
 }
 
 // 上传图片到Supabase
 const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
   const uploadedUrls: string[] = []
+  const bucketName = 'campus-posts'
+  
+  // 检查存储桶是否存在
+  const bucketExists = await checkStorageBucket(bucketName)
+  if (!bucketExists) {
+    console.error(`存储桶 ${bucketName} 不存在，无法上传图片`)
+    throw new Error(`存储桶 ${bucketName} 不存在，请联系管理员配置存储桶`)
+  }
   
   for (const file of files) {
     if (!file.raw) continue
     
     try {
       // 生成唯一文件名
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${file.name.split('.').pop()}`
+      const fileExtension = file.name.split('.').pop() || 'jpg'
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`
+      
+      console.log(`开始上传图片到存储桶 ${bucketName}:`, fileName)
       
       // 上传到Supabase存储桶
       const { data, error } = await supabase.storage
-        .from('campus-posts')
+        .from(bucketName)
         .upload(fileName, file.raw)
       
-      if (error) throw error
+      if (error) {
+        console.error('图片上传错误详情:', error)
+        throw new Error(`图片上传失败: ${error.message}`)
+      }
       
       // 获取公开URL
       const { data: { publicUrl } } = supabase.storage
-        .from('campus-posts')
+        .from(bucketName)
         .getPublicUrl(fileName)
       
+      console.log('图片上传成功:', { fileName, publicUrl })
       uploadedUrls.push(publicUrl)
     } catch (error) {
       console.error('图片上传失败:', error)
-      throw new Error('图片上传失败')
+      throw new Error(`图片上传失败: ${error.message}`)
     }
   }
   
@@ -469,14 +483,27 @@ const publishPost = async () => {
     // 如果有图片需要上传
     if (imageList.value.length > 0) {
       ElMessage.info('正在上传图片...')
-      imageUrls = await uploadImages(imageList.value)
+      console.log('开始上传图片，数量:', imageList.value.length)
+      
+      try {
+        imageUrls = await uploadImages(imageList.value)
+        console.log('图片上传完成，URLs:', imageUrls)
+      } catch (uploadError: any) {
+        console.error('图片上传失败:', uploadError)
+        ElMessage.error(`图片上传失败: ${uploadError.message}`)
+        return
+      }
     }
+    
+    console.log('准备发布动态，图片URLs:', imageUrls)
     
     // 发布动态，包含图片URL
     const result = await campusStore.publishCampusPost({
       ...publishForm.value,
       images: imageUrls
     })
+    
+    console.log('发布结果:', result)
     
     if (result.success) {
       ElMessage.success('动态发布成功！')
@@ -1263,70 +1290,6 @@ const formatTime = (timeString: string) => {
 
 .comments-section::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
-}
-
-/* 图片上传样式 */
-.upload-tip {
-  font-size: 12px;
-  color: #666;
-  margin-top: 8px;
-}
-
-/* 图片上传卡片样式 */
-:deep(.el-upload--picture-card) {
-  background-color: #fafafa;
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-upload--picture-card:hover) {
-  border-color: #409eff;
-}
-
-:deep(.el-upload-list--picture-card .el-upload-list__item) {
-  border-radius: 6px;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-upload-list--picture-card .el-upload-list__item:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* 图片上传样式 */
-.upload-tip {
-  font-size: 12px;
-  color: #666;
-  margin-top: 8px;
-}
-
-/* 图片上传卡片样式 */
-:deep(.el-upload--picture-card) {
-  background-color: #fafafa;
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-upload--picture-card:hover) {
-  border-color: #409eff;
-}
-
-:deep(.el-upload-list--picture-card .el-upload-list__item) {
-  border-radius: 6px;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-upload-list--picture-card .el-upload-list__item:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* 图片上传样式 */

@@ -200,6 +200,14 @@ export const useCampusStore = defineStore('campus', () => {
 
     isLoading.value = true
     try {
+      console.log('开始发布动态，数据:', {
+        content: postData.content,
+        images: postData.images,
+        type: postData.type,
+        location: postData.location,
+        tags: postData.tags
+      })
+
       const { data, error } = await supabase
         .from('campus_posts')
         .insert({
@@ -213,16 +221,21 @@ export const useCampusStore = defineStore('campus', () => {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('数据库插入错误:', error)
+        throw error
+      }
+
+      console.log('数据库插入成功，返回数据:', data)
 
       // 添加到本地列表
-      campusPosts.value.unshift({
+      const newPost = {
         id: data.id,
         userId: data.user_id,
         username: '当前用户', // 实际项目中应该从用户信息获取
         userAvatar: '/src/assets/default-avatar.png',
         content: data.content,
-        images: data.images,
+        images: data.images || [],
         type: data.type,
         likes: 0,
         comments: 0,
@@ -230,8 +243,11 @@ export const useCampusStore = defineStore('campus', () => {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         location: data.location,
-        tags: data.tags
-      })
+        tags: data.tags || []
+      }
+
+      console.log('创建的新动态对象:', newPost)
+      campusPosts.value.unshift(newPost)
 
       return { success: true, message: '发布成功' }
     } catch (error: any) {

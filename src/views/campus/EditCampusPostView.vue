@@ -236,9 +236,146 @@ const handleImageRemove: UploadProps['onRemove'] = (file) => {
 }
 
 // 图片变化
-const handleImageChange: UploadProps['onChange'] = (file) => {
-  // 这里可以添加图片预览逻辑
-  console.log('图片变化:', file)
+const handleImageChange: UploadProps['onChange'] = (file, fileList) => {
+  console.log('图片变化:', file, '文件列表:', fileList)
+  
+  // 更新imageList，确保包含所有已选择的文件
+  imageList.value = fileList.map(f => ({
+    ...f,
+    // 确保每个文件都有uid和raw属性
+    uid: f.uid || `file-${Date.now()}-${Math.random().toString(36).substring(2)}`,
+    raw: f.raw || f
+  }))
+  
+  console.log('更新后的imageList:', imageList.value)
+}
+
+// 检查存储桶是否存在
+const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.storage.getBucket(bucketName)
+    if (error) {
+      console.warn(`存储桶 ${bucketName} 不存在或无法访问:`, error.message)
+      return false
+    }
+    console.log(`存储桶 ${bucketName} 存在:`, data)
+    return true
+  } catch (error) {
+    console.error(`检查存储桶 ${bucketName} 失败:`, error)
+    return false
+  }
+}
+
+// 上传图片到Supabase
+const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
+  const uploadedUrls: string[] = []
+  const bucketName = 'campus-posts'
+  
+  // 检查存储桶是否存在
+  const bucketExists = await checkStorageBucket(bucketName)
+  if (!bucketExists) {
+    console.error(`存储桶 ${bucketName} 不存在，无法上传图片`)
+    throw new Error(`存储桶 ${bucketName} 不存在，请联系管理员配置存储桶`)
+  }
+  
+  for (const file of files) {
+    if (!file.raw) continue
+    
+    try {
+      // 生成唯一文件名
+      const fileExtension = file.name.split('.').pop() || 'jpg'
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`
+      
+      console.log(`开始上传图片到存储桶 ${bucketName}:`, fileName)
+      
+      // 上传到Supabase存储桶
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(fileName, file.raw)
+      
+      if (error) {
+        console.error('图片上传错误详情:', error)
+        throw new Error(`图片上传失败: ${error.message}`)
+      }
+      
+      // 获取公开URL
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(fileName)
+      
+      console.log('图片上传成功:', { fileName, publicUrl })
+      uploadedUrls.push(publicUrl)
+    } catch (error) {
+      console.error('图片上传失败:', error)
+      throw new Error(`图片上传失败: ${error.message}`)
+    }
+  }
+  
+  return uploadedUrls
+}
+
+// 检查存储桶是否存在
+const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.storage.getBucket(bucketName)
+    if (error) {
+      console.warn(`存储桶 ${bucketName} 不存在或无法访问:`, error.message)
+      return false
+    }
+    console.log(`存储桶 ${bucketName} 存在:`, data)
+    return true
+  } catch (error) {
+    console.error(`检查存储桶 ${bucketName} 失败:`, error)
+    return false
+  }
+}
+
+// 上传图片到Supabase
+const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
+  const uploadedUrls: string[] = []
+  const bucketName = 'campus-posts'
+  
+  // 检查存储桶是否存在
+  const bucketExists = await checkStorageBucket(bucketName)
+  if (!bucketExists) {
+    console.error(`存储桶 ${bucketName} 不存在，无法上传图片`)
+    throw new Error(`存储桶 ${bucketName} 不存在，请联系管理员配置存储桶`)
+  }
+  
+  for (const file of files) {
+    if (!file.raw) continue
+    
+    try {
+      // 生成唯一文件名
+      const fileExtension = file.name.split('.').pop() || 'jpg'
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`
+      
+      console.log(`开始上传图片到存储桶 ${bucketName}:`, fileName)
+      
+      // 上传到Supabase存储桶
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(fileName, file.raw)
+      
+      if (error) {
+        console.error('图片上传错误详情:', error)
+        throw new Error(`图片上传失败: ${error.message}`)
+      }
+      
+      // 获取公开URL
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(fileName)
+      
+      console.log('图片上传成功:', { fileName, publicUrl })
+      uploadedUrls.push(publicUrl)
+    } catch (error) {
+      console.error('图片上传失败:', error)
+      throw new Error(`图片上传失败: ${error.message}`)
+    }
+  }
+  
+  return uploadedUrls
 }
 
 // 保存修改
@@ -270,7 +407,7 @@ const handleSave = async () => {
     }
     
     // 准备更新数据
-    const updateData = {
+    const updateData: any = {
       type: editForm.type,
       content: editForm.content,
       location: editForm.location,
@@ -279,10 +416,33 @@ const handleSave = async () => {
     }
     
     // 如果有新图片，需要上传图片
+    let updatedImages = null
     if (imageList.value.some(img => img.raw)) {
-      // 这里可以添加图片上传逻辑
-      // 暂时只更新文本内容
+      console.log('检测到新图片，开始上传...')
+      
+      // 分离新上传的图片和已有的图片
+      const newImages = imageList.value.filter(img => img.raw)
+      const existingImages = imageList.value.filter(img => !img.raw && img.url)
+      
+      // 上传新图片
+      const uploadedUrls = await uploadImages(newImages)
+      console.log('新图片上传完成:', uploadedUrls)
+      
+      // 合并图片URL
+      updatedImages = [...existingImages.map(img => img.url), ...uploadedUrls]
+      console.log('合并后的图片URL:', updatedImages)
+      
+      // 将图片URL添加到更新数据中
+      updateData.images = updatedImages
+    } else if (imageList.value.length > 0) {
+      // 如果没有新图片但有现有图片，更新图片列表
+      updateData.images = imageList.value.map(img => img.url)
+    } else {
+      // 如果没有图片，清空图片数组
+      updateData.images = []
     }
+    
+    console.log('最终更新数据:', updateData)
     
     // 更新动态
     const { error } = await supabase
@@ -296,9 +456,14 @@ const handleSave = async () => {
     const index = campusStore.campusPosts.findIndex(p => p.id === postId.value)
     if (index !== -1) {
       Object.assign(campusStore.campusPosts[index], {
-        ...updateData,
+        type: updateData.type,
+        content: updateData.content,
+        location: updateData.location,
+        tags: updateData.tags,
+        images: updateData.images || [],
         updatedAt: new Date().toISOString()
       })
+      console.log('Store数据更新完成:', campusStore.campusPosts[index])
     }
     
     ElMessage.success('动态修改成功')
