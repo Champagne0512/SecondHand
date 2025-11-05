@@ -40,6 +40,13 @@ export const useMessageStore = defineStore('messages', () => {
 
       console.log('获取对话列表，用户ID:', userStore.user.id)
 
+      // 验证用户ID格式
+      if (!userStore.user.id || userStore.user.id === 'undefined' || userStore.user.id === 'null') {
+        console.error('用户ID格式无效，无法查询对话')
+        ElMessage.error('用户信息异常，请重新登录')
+        return []
+      }
+
       // 首先尝试简单的查询，确保基本功能正常
       console.log('执行基础查询...')
       const { data: simpleData, error: simpleError } = await supabase

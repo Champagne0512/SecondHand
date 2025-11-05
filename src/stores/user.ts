@@ -6,11 +6,131 @@ import { ElMessage } from 'element-plus'
 
 // 用户状态管理store
 export const useUserStore = defineStore('user', () => {
-  // 状态
+  // 状态 - 从localStorage恢复初始状态
   const user = ref<User | null>(null)
+  
+  // 初始化时从localStorage恢复用户状态
+  const initializeUserFromStorage = () => {
+    try {
+      const saved = localStorage.getItem('campus-marketplace-user')
+      if (saved) {
+        user.value = JSON.parse(saved)
+      }
+    } catch {
+      user.value = null
+    }
+  }
+  
+  // 立即执行初始化
+  initializeUserFromStorage()
   const isLoading = ref(false)
-  const favorites = ref<string[]>([]) // 存储收藏的商品ID列表
-  const isAdmin = ref(false) // 管理员权限状态
+  const favorites = ref<string[]>([])
+  
+  // 初始化时从localStorage恢复收藏列表
+  const initializeFavoritesFromStorage = () => {
+    try {
+      const saved = localStorage.getItem('campus-marketplace-favorites')
+      if (saved) {
+        favorites.value = JSON.parse(saved)
+      }
+    } catch {
+      favorites.value = []
+    }
+  }
+  
+  // 立即执行初始化
+  initializeFavoritesFromStorage()
+  const isAdmin = ref<boolean>(false)
+  
+  // 初始化时从localStorage恢复管理员状态
+  const initializeAdminFromStorage = () => {
+    try {
+      const saved = localStorage.getItem('campus-marketplace-isAdmin')
+      if (saved) {
+        isAdmin.value = JSON.parse(saved)
+      }
+    } catch {
+      isAdmin.value = false
+    }
+  }
+  
+  // 立即执行初始化
+  initializeAdminFromStorage()
+  
+  // 存储会话token和用户ID，用于状态恢复
+  const sessionToken = ref<string | null>(null)
+  const userId = ref<string | null>(null)
+  
+  // 初始化时从localStorage恢复会话状态
+  const initializeSessionFromStorage = () => {
+    try {
+      const savedToken = localStorage.getItem('campus-marketplace-session-token')
+      const savedUserId = localStorage.getItem('campus-marketplace-user-id')
+      
+      if (savedToken) sessionToken.value = savedToken
+      if (savedUserId) userId.value = savedUserId
+    } catch {
+      sessionToken.value = null
+      userId.value = null
+    }
+  }
+  
+  // 立即执行初始化
+  initializeSessionFromStorage()
+
+  // 保存状态到localStorage的辅助函数
+  const saveStateToLocalStorage = () => {
+    try {
+      // 确保用户数据包含所有渲染所需的字段
+      const userDataToSave = user.value ? {
+        id: user.value.id,
+        username: user.value.username || '用户',
+        email: user.value.email || '',
+        phone: user.value.phone || '',
+        avatar: user.value.avatar || '/src/assets/default-avatar.png',
+        createdAt: user.value.createdAt || new Date().toISOString()
+      } : null
+      
+      localStorage.setItem('campus-marketplace-user', JSON.stringify(userDataToSave))
+      localStorage.setItem('campus-marketplace-favorites', JSON.stringify(favorites.value))
+      localStorage.setItem('campus-marketplace-isAdmin', JSON.stringify(isAdmin.value))
+      
+      // 保存会话token和用户ID
+      if (user.value) {
+        localStorage.setItem('campus-marketplace-user-id', user.value.id)
+      }
+      
+      // 保存当前会话token
+      const saveSessionToken = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.access_token) {
+            localStorage.setItem('campus-marketplace-session-token', session.access_token)
+          }
+        } catch (error) {
+          console.warn('保存会话token失败:', error)
+        }
+      }
+      saveSessionToken()
+      
+      console.log('用户状态已保存到localStorage，包含字段:', userDataToSave ? Object.keys(userDataToSave) : '无用户数据')
+    } catch (error) {
+      console.warn('保存状态到localStorage失败:', error)
+    }
+  }
+
+  // 清除localStorage状态的辅助函数
+  const clearStateFromLocalStorage = () => {
+    try {
+      localStorage.removeItem('campus-marketplace-user')
+      localStorage.removeItem('campus-marketplace-favorites')
+      localStorage.removeItem('campus-marketplace-isAdmin')
+      localStorage.removeItem('campus-marketplace-user-id')
+      localStorage.removeItem('campus-marketplace-session-token')
+    } catch (error) {
+      console.warn('清除localStorage状态失败:', error)
+    }
+  }
 
   // 计算属性
   const isLoggedIn = computed(() => {
@@ -106,6 +226,9 @@ export const useUserStore = defineStore('user', () => {
           }
         }
       }
+
+      // 保存状态到localStorage
+      saveStateToLocalStorage()
 
       return { success: true, message: '登录成功' }
     } catch (error: any) {
@@ -218,6 +341,11 @@ export const useUserStore = defineStore('user', () => {
       if (error) throw error
       
       user.value = null
+      favorites.value = []
+      isAdmin.value = false
+      
+      // 清除localStorage状态
+      clearStateFromLocalStorage()
     } catch (error) {
       console.error('登出失败:', error)
     }
@@ -422,77 +550,249 @@ export const useUserStore = defineStore('user', () => {
     console.log(`临时设置管理员权限: ${isAdminFlag}`)
   }
 
+  // 验证并恢复用户状态
+  const validateAndRestoreUserState = async (): Promise<boolean> => {
+    try {
+      console.log('🔄 开始验证并恢复用户状态...')
+      
+      // 检查localStorage中是否有用户状态
+      const savedUserId = localStorage.getItem('campus-marketplace-user-id')
+      const savedSessionToken = localStorage.getItem('campus-marketplace-session-token')
+      
+      if (!savedUserId || !savedSessionToken) {
+        console.log('❌ localStorage中没有有效的用户状态')
+        return false
+      }
+      
+      // 验证用户ID格式
+      if (!savedUserId || savedUserId === 'undefined' || savedUserId === 'null') {
+        console.warn('⚠️ 用户ID格式无效，清除状态')
+        clearStateFromLocalStorage()
+        return false
+      }
+      
+      console.log('✅ 检测到保存的用户状态，用户ID:', savedUserId)
+      
+      // 首先尝试获取当前会话
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (session && session.user.id === savedUserId) {
+        console.log('✅ 会话有效，直接恢复用户状态')
+        await restoreUserFromSession(session)
+        return true
+      }
+      
+      // 如果会话无效，尝试使用保存的token恢复会话
+      console.log('🔄 会话无效，尝试使用保存的token恢复...')
+      
+      // 设置token到Supabase客户端
+      const { data: setSessionData, error: setSessionError } = await supabase.auth.setSession({
+        access_token: savedSessionToken,
+        refresh_token: '' // 刷新token可能已过期，使用空值
+      })
+      
+      if (setSessionError) {
+        console.warn('⚠️ 设置会话失败:', setSessionError.message)
+        // 清除无效的状态
+        clearStateFromLocalStorage()
+        return false
+      }
+      
+      // 重新获取会话
+      const { data: { session: newSession } } = await supabase.auth.getSession()
+      
+      if (newSession && newSession.user.id === savedUserId) {
+        console.log('✅ 会话恢复成功，用户ID:', newSession.user.id)
+        await restoreUserFromSession(newSession)
+        return true
+      }
+      
+      console.log('❌ 会话恢复失败，清除无效状态')
+      clearStateFromLocalStorage()
+      return false
+      
+    } catch (error) {
+      console.error('❌ 验证用户状态失败:', error)
+      return false
+    }
+  }
+  
+  // 从会话恢复用户信息
+  const restoreUserFromSession = async (session: any) => {
+    try {
+      console.log('🔄 从会话恢复用户信息...')
+      
+      // 获取用户profile信息
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+
+      if (profiles && profiles.length > 0 && !profileError) {
+        const profile = profiles[0]
+        user.value = {
+          id: session.user.id,
+          username: profile.username,
+          email: profile.email,
+          phone: profile.phone || '',
+          avatar: profile.avatar_url || '/src/assets/default-avatar.png',
+          createdAt: profile.created_at
+        }
+        console.log('✅ 从profiles表加载用户信息成功')
+      } else {
+        // 如果没有profile，使用会话信息创建基础用户信息
+        user.value = {
+          id: session.user.id,
+          username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || '用户',
+          email: session.user.email || '',
+          phone: session.user.user_metadata?.phone || '',
+          avatar: '/src/assets/default-avatar.png',
+          createdAt: session.user.created_at || new Date().toISOString()
+        }
+        console.log('✅ 从会话信息创建用户信息成功')
+      }
+      
+      // 加载用户收藏列表
+      await fetchFavorites()
+      
+      // 强制检查管理员权限，确保权限状态正确
+      console.log('🔍 开始强制检查管理员权限...')
+      const adminResult = await checkAdminPermission()
+      console.log('🔍 管理员权限检查结果:', adminResult ? '是管理员' : '不是管理员')
+      console.log('🔍 当前管理员状态:', isAdmin.value ? '已设置为管理员' : '未设置为管理员')
+      
+      // 如果检查失败但用户是已知管理员，强制设置为管理员
+      if (!adminResult && session.user.id === '88e123ae-d36a-486a-9971-9b42c6301a99') {
+        console.log('🔧 检测到指定管理员用户，强制设置管理员权限')
+        isAdmin.value = true
+      }
+      
+      // 保存状态到localStorage
+      saveStateToLocalStorage()
+      
+      // 触发状态更新通知，确保组件感知状态变化
+      console.log('🔄 触发用户状态更新通知...')
+      // 强制触发响应式更新
+      user.value = { ...user.value }
+      
+      console.log('✅ 用户信息恢复完成，状态已保存到localStorage')
+      
+    } catch (error) {
+      console.error('❌ 从会话恢复用户信息失败:', error)
+      throw error
+    }
+  }
+
   // 初始化用户信息
   const initUser = async () => {
     // 如果用户已经初始化，直接返回成功
     if (user.value) {
+      console.log('用户已初始化，跳过重复初始化')
       return true
     }
     
+    // 防止重复初始化
+    if (isLoading.value) {
+      console.log('用户状态正在初始化中，跳过重复调用')
+      return false
+    }
+    
+    isLoading.value = true
+    
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      console.log('🔄 开始初始化用户信息...')
       
-      if (session) {
-        // 获取用户profile信息
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-
-        if (profiles && profiles.length > 0 && !profileError) {
-          const profile = profiles[0]
-          user.value = {
-            id: session.user.id,
-            username: profile.username,
-            email: profile.email,
-            phone: profile.phone || '',
-            avatar: profile.avatar_url || '/src/assets/default-avatar.png',
-            createdAt: profile.created_at
-          }
-        } else {
-          // 如果没有profile，使用会话信息创建基础用户信息
-          user.value = {
-            id: session.user.id,
-            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || '用户',
-            email: session.user.email || '',
-            phone: session.user.user_metadata?.phone || '',
-            avatar: '/src/assets/default-avatar.png',
-            createdAt: session.user.created_at || new Date().toISOString()
-          }
+      // 首先检查数据库连接状态
+      console.log('🔍 检查数据库连接状态...')
+      const { data: { session: initialSession } } = await supabase.auth.getSession()
+      
+      if (!initialSession) {
+        console.log('⚠️ 未检测到有效会话，尝试从localStorage恢复状态...')
+        
+        // 尝试验证并恢复用户状态
+        const restored = await validateAndRestoreUserState()
+        
+        if (restored) {
+          console.log('✅ 用户状态恢复成功')
+          isLoading.value = false
+          return true
         }
         
-        // 加载用户收藏列表
-        await fetchFavorites()
-        
-        // 强制检查管理员权限，确保权限状态正确
-        console.log('开始强制检查管理员权限...')
-        const adminResult = await checkAdminPermission()
-        console.log('管理员权限检查结果:', adminResult ? '是管理员' : '不是管理员')
-        console.log('当前管理员状态:', isAdmin.value ? '已设置为管理员' : '未设置为管理员')
-        
-        // 如果检查失败但用户是已知管理员，强制设置为管理员
-        if (!adminResult && session.user.id === '88e123ae-d36a-486a-9971-9b42c6301a99') {
-          console.log('检测到指定管理员用户，强制设置管理员权限')
-          isAdmin.value = true
-        }
-        
-        return true // 返回初始化成功
+        console.log('❌ 用户状态恢复失败，用户未登录')
+        // 清除可能存在的旧状态
+        clearStateFromLocalStorage()
+        isLoading.value = false
+        return false
       }
       
-      return false // 返回初始化失败
+      // 如果有有效会话，直接恢复用户信息
+      console.log('✅ 检测到有效会话，用户ID:', initialSession.user.id)
+      await restoreUserFromSession(initialSession)
+      isLoading.value = false
+      return true
+      
     } catch (error) {
-      console.error('初始化用户信息失败:', error)
+      console.error('❌ 初始化用户信息失败:', error)
+      
+      // 如果初始化失败，尝试从localStorage恢复基础状态
+      try {
+        const savedUser = localStorage.getItem('campus-marketplace-user')
+        if (savedUser) {
+          console.log('🔄 从localStorage恢复基础用户状态')
+          const parsedUser = JSON.parse(savedUser)
+          
+          // 验证用户数据格式
+          if (parsedUser && parsedUser.id && parsedUser.id !== 'undefined' && parsedUser.id !== 'null') {
+            user.value = parsedUser
+            
+            // 恢复其他状态
+            const savedFavorites = localStorage.getItem('campus-marketplace-favorites')
+            if (savedFavorites) {
+              favorites.value = JSON.parse(savedFavorites)
+            }
+            
+            const savedIsAdmin = localStorage.getItem('campus-marketplace-isAdmin')
+            if (savedIsAdmin) {
+              isAdmin.value = JSON.parse(savedIsAdmin)
+            }
+            
+            console.log('✅ 基础用户状态恢复成功')
+            isLoading.value = false
+            return true
+          } else {
+            console.warn('⚠️ localStorage中的用户数据格式无效，清除状态')
+            clearStateFromLocalStorage()
+          }
+        }
+      } catch (localStorageError) {
+        console.warn('⚠️ 从localStorage恢复状态失败:', localStorageError)
+        // 清除可能损坏的状态
+        clearStateFromLocalStorage()
+      }
+      
+      isLoading.value = false
       return false
     }
   }
 
   // 监听认证状态变化
   supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('认证状态变化:', event)
+    
     if (event === 'SIGNED_IN' && session) {
+      console.log('用户登录成功，开始初始化用户信息')
       await initUser()
     } else if (event === 'SIGNED_OUT') {
+      console.log('用户登出，清除状态')
       user.value = null
       favorites.value = [] // 清空收藏列表
+      isAdmin.value = false
+      
+      // 清除localStorage状态
+      clearStateFromLocalStorage()
+    } else if (event === 'TOKEN_REFRESHED') {
+      console.log('Token已刷新，重新保存状态')
+      saveStateToLocalStorage()
     }
   })
 
@@ -645,6 +945,8 @@ export const useUserStore = defineStore('user', () => {
     addToFavorites,
     removeFromFavorites,
     checkAdminPermission,
-    setTemporaryAdmin
+    setTemporaryAdmin,
+    restoreUserFromSession,
+    validateAndRestoreUserState
   }
 })

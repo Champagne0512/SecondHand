@@ -84,9 +84,9 @@
             </div>
 
             <!-- 位置和标签 -->
-            <div v-if="post.location || post.tags.length > 0" class="post-meta">
+            <div v-if="post.location || (post.tags && post.tags.length > 0)" class="post-meta">
               <span v-if="post.location" class="location">📍 {{ post.location }}</span>
-              <div v-if="post.tags.length > 0" class="tags">
+              <div v-if="post.tags && post.tags.length > 0" class="tags">
                 <el-tag
                   v-for="tag in post.tags"
                   :key="tag"
@@ -317,10 +317,10 @@ const commentSortType = ref<'time' | 'likes'>('time')
 const commentSortDirection = ref<'asc' | 'desc'>('desc')
 
 const publishForm = ref({
-  type: 'text',
+  type: 'text' as 'text' | 'image' | 'trade' | 'event' | 'help',
   content: '',
   location: '',
-  tags: []
+  tags: [] as string[]
 })
 
 // 图片上传相关
@@ -337,7 +337,7 @@ const filteredPosts = computed(() => {
     posts = posts.filter(post => 
       post.content.toLowerCase().includes(keyword) ||
       post.username.toLowerCase().includes(keyword) ||
-      post.tags.some(tag => tag.toLowerCase().includes(keyword))
+      (post.tags && post.tags.some(tag => tag.toLowerCase().includes(keyword)))
     )
   }
   
@@ -415,7 +415,7 @@ const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
     }
     console.log(`存储桶 ${bucketName} 存在:`, data)
     return true
-  } catch (error) {
+  } catch (error: any) {
     console.error(`检查存储桶 ${bucketName} 失败:`, error)
     return false
   }
@@ -460,7 +460,7 @@ const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
       
       console.log('图片上传成功:', { fileName, publicUrl })
       uploadedUrls.push(publicUrl)
-    } catch (error) {
+    } catch (error: any) {
       console.error('图片上传失败:', error)
       throw new Error(`图片上传失败: ${error.message}`)
     }
@@ -528,7 +528,20 @@ const toggleLike = async (post: any) => {
   }
 
   try {
-    if (post.isLiked) {
+    // 首先检查用户是否已经点赞过
+    const { data: existingLike, error: checkError } = await supabase
+      .from('post_likes')
+      .select('id')
+      .eq('post_id', post.id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 表示没有找到记录，这是正常的
+      throw checkError
+    }
+
+    if (existingLike) {
       // 取消点赞
       const { error } = await supabase
         .from('post_likes')
@@ -572,6 +585,10 @@ const showComments = async (post: any) => {
 
 const loadComments = async (postId: string) => {
   try {
+    // 获取当前用户ID（如果已登录）
+    const { data: { user } } = await supabase.auth.getUser()
+    const currentUserId = user?.id
+
     // 构建排序参数 - 支持正序和倒序排列
     let orderBy = 'created_at'
     let ascending = commentSortDirection.value === 'asc' // 根据方向设置排序
@@ -610,6 +627,25 @@ const loadComments = async (postId: string) => {
       console.warn('获取用户信息失败，使用默认信息:', usersError.message)
     }
 
+    // 如果有用户登录，查询评论点赞状态
+    let commentLikesMap = new Map()
+    if (currentUserId) {
+      const commentIds = commentsData.map(comment => comment.id)
+      if (commentIds.length > 0) {
+        const { data: likesData } = await supabase
+          .from('comment_likes')
+          .select('comment_id')
+          .eq('user_id', currentUserId)
+          .in('comment_id', commentIds)
+        
+        if (likesData) {
+          likesData.forEach(like => {
+            commentLikesMap.set(like.comment_id, true)
+          })
+        }
+      }
+    }
+
     // 创建用户信息映射
     const userMap = new Map()
     if (usersData) {
@@ -636,7 +672,7 @@ const loadComments = async (postId: string) => {
         userAvatar: userInfo.avatar_url,
         content: comment.content,
         likes: comment.likes || 0,
-        isLiked: comment.is_liked || false,
+        isLiked: commentLikesMap.has(comment.id) || false,
         createdAt: comment.created_at,
         updatedAt: comment.updated_at
       }
@@ -724,7 +760,20 @@ const toggleCommentLike = async (comment: any) => {
   }
 
   try {
-    if (comment.isLiked) {
+    // 首先检查用户是否已经点赞过
+    const { data: existingLike, error: checkError } = await supabase
+      .from('comment_likes')
+      .select('id')
+      .eq('comment_id', comment.id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 表示没有找到记录，这是正常的
+      throw checkError
+    }
+
+    if (existingLike) {
       // 取消点赞
       const { error } = await supabase
         .from('comment_likes')
@@ -797,10 +846,10 @@ const handleCloseDialog = () => {
 
 const resetPublishForm = () => {
   publishForm.value = {
-    type: 'text',
+    type: 'text' as 'text' | 'image' | 'trade' | 'event' | 'help',
     content: '',
     location: '',
-    tags: []
+    tags: [] as string[]
   }
   imageList.value = []
 }

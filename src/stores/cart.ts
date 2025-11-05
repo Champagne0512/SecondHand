@@ -54,22 +54,43 @@ export const useCartStore = defineStore('cart', () => {
   
   // 获取购物车列表
   const fetchCartItems = async () => {
-    if (!userStore.user) return
+    if (!userStore.user) {
+      console.log('❌ 用户未登录，跳过获取购物车')
+      cartItems.value = []
+      return
+    }
     
     isLoading.value = true
     try {
+      console.log('🔄 开始获取购物车数据，用户ID:', userStore.user.id)
+      
+      // 首先检查数据库连接
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session) {
+        console.warn('⚠️ 数据库会话无效，跳过获取购物车')
+        cartItems.value = []
+        return
+      }
+      
       const { data, error } = await supabase
         .from('shopping_cart_details')
         .select('*')
         .eq('user_id', userStore.user.id)
         .order('created_at', { ascending: false })
       
-      if (error) throw error
+      if (error) {
+        console.error('❌ 获取购物车数据库错误:', error)
+        // 如果数据库错误，返回空数组而不是抛出错误
+        cartItems.value = []
+        return
+      }
       
       cartItems.value = data || []
+      console.log('✅ 购物车数据获取成功，商品数量:', cartItems.value.length)
     } catch (error) {
-      console.error('获取购物车失败:', error)
-      ElMessage.error('获取购物车失败')
+      console.error('❌ 获取购物车异常:', error)
+      // 异常情况下也返回空数组
+      cartItems.value = []
     } finally {
       isLoading.value = false
     }

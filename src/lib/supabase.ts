@@ -13,12 +13,49 @@ if (!supabaseUrl || !supabaseAnonKey) {
   })
 }
 
-// 创建Supabase客户端
+// 创建Supabase客户端 - 增强连接稳定性
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storage: {
+      getItem: (key: string) => {
+        try {
+          return localStorage.getItem(key)
+        } catch (error) {
+          console.warn('localStorage访问失败:', error)
+          return null
+        }
+      },
+      setItem: (key: string, value: string) => {
+        try {
+          localStorage.setItem(key, value)
+        } catch (error) {
+          console.warn('localStorage设置失败:', error)
+        }
+      },
+      removeItem: (key: string) => {
+        try {
+          localStorage.removeItem(key)
+        } catch (error) {
+          console.warn('localStorage删除失败:', error)
+        }
+      }
+    }
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'campus-marketplace-vue'
+    }
+  },
+  db: {
+    schema: 'public'
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
   }
 })
 

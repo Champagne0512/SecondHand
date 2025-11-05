@@ -576,25 +576,49 @@ const handleDeletePost = async (post: any) => {
 }
 
 onMounted(async () => {
-  await userStore.initUser()
-  
-  // 根据当前标签页加载不同的数据
-  if (activeTab.value === 'my-products') {
-    await fetchMyProducts()
-  } else if (activeTab.value === 'my-posts') {
-    await fetchMyPosts()
-  } else {
-    await productStore.fetchProducts()
-  }
-  
-  // 初始化表单数据
-  if (userStore.userInfo) {
-    Object.assign(profileForm, {
-      username: userStore.userInfo.username,
-      email: userStore.userInfo.email,
-      phone: userStore.userInfo.phone || '',
-      avatar: userStore.userInfo.avatar || ''
-    })
+  try {
+    // 确保用户状态已初始化
+    const initialized = await userStore.initUser()
+    
+    if (!initialized) {
+      console.warn('用户状态初始化失败，跳转到登录页')
+      ElMessage.warning('请先登录')
+      router.push('/login')
+      return
+    }
+    
+    // 检查用户是否已登录
+    if (!userStore.isLoggedIn || !userStore.userInfo) {
+      console.warn('用户未登录，跳转到登录页')
+      ElMessage.warning('请先登录')
+      router.push('/login')
+      return
+    }
+    
+    console.log('用户状态初始化成功，用户信息:', userStore.userInfo)
+    
+    // 根据当前标签页加载不同的数据
+    if (activeTab.value === 'my-products') {
+      await fetchMyProducts()
+    } else if (activeTab.value === 'my-posts') {
+      await fetchMyPosts()
+    } else {
+      await productStore.fetchProducts()
+    }
+    
+    // 初始化表单数据
+    if (userStore.userInfo) {
+      Object.assign(profileForm, {
+        username: userStore.userInfo.username,
+        email: userStore.userInfo.email,
+        phone: userStore.userInfo.phone || '',
+        avatar: userStore.userInfo.avatar || ''
+      })
+      console.log('表单数据初始化完成')
+    }
+  } catch (error) {
+    console.error('个人中心页面初始化失败:', error)
+    ElMessage.error('页面加载失败，请刷新重试')
   }
 })
 </script>

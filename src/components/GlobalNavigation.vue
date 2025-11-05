@@ -92,7 +92,14 @@
 
           <!-- 用户操作 -->
           <div class="user-actions">
-            <template v-if="userStore.isLoggedIn">
+            <!-- 用户状态加载守卫 -->
+            <template v-if="userStore.isLoading">
+              <div class="loading-state">
+                <el-icon class="loading-icon"><Loading /></el-icon>
+                <span class="loading-text">加载中...</span>
+              </div>
+            </template>
+            <template v-else-if="userStore.isLoggedIn">
               <!-- 购物车入口 -->
               <div class="cart-icon-container" @click="$router.push('/cart')">
                 <el-badge :value="cartItemCount" :max="99" class="cart-badge">
@@ -178,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
@@ -186,7 +193,7 @@ import { ElMessage } from 'element-plus'
 import { 
   ShoppingBag, House, Goods, Plus, User, Search, 
   ChatDotRound, SwitchButton, School, Cpu, Setting,
-  ShoppingCart
+  ShoppingCart, Loading
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -195,6 +202,39 @@ const userStore = useUserStore()
 const cartStore = useCartStore()
 
 const searchKeyword = ref('')
+
+// 使用计算属性监听用户状态变化
+const userInfo = computed(() => userStore.userInfo)
+const isLoggedIn = computed(() => userStore.isLoggedIn)
+const isLoading = computed(() => userStore.isLoading)
+
+// 监听用户状态变化，确保组件能及时响应
+watch([userInfo, isLoggedIn], () => {
+  console.log('🔄 用户状态变化，重新渲染导航栏')
+  console.log('🔄 当前用户信息:', userInfo.value)
+  console.log('🔄 登录状态:', isLoggedIn.value)
+}, { immediate: true })
+
+// 组件挂载时确保用户状态已初始化
+onMounted(async () => {
+  try {
+    console.log('🔄 GlobalNavigation组件挂载，检查用户状态...')
+    
+    // 如果用户信息为空但localStorage中有用户数据，尝试重新初始化
+    if (!userStore.userInfo) {
+      console.log('🔄 用户信息为空，尝试从localStorage恢复状态...')
+      const savedUser = localStorage.getItem('campus-marketplace-user')
+      if (savedUser) {
+        console.log('🔄 检测到localStorage中的用户数据，尝试恢复...')
+        await userStore.initUser()
+      }
+    }
+    
+    console.log('✅ GlobalNavigation用户状态检查完成')
+  } catch (error) {
+    console.error('❌ GlobalNavigation用户状态检查失败:', error)
+  }
+})
 
 // 计算购物车商品数量
 const cartItemCount = computed(() => {
@@ -270,12 +310,30 @@ const showBreadcrumb = computed(() => {
   })
 
 // 用户导航处理
-const handleUserNavigation = () => {
-  if (userStore.isLoggedIn) {
-    // 如果已登录，直接跳转到个人中心
-    router.push('/profile')
-  } else {
-    // 如果未登录，跳转到登录页面
+const handleUserNavigation = async () => {
+  try {
+    // 确保用户状态已初始化
+    if (!userStore.userInfo) {
+      console.log('用户状态未初始化，尝试初始化...')
+      const initialized = await userStore.initUser()
+      if (!initialized) {
+        console.log('用户状态初始化失败，跳转到登录页')
+        router.push('/login')
+        return
+      }
+    }
+    
+    // 检查用户是否已登录
+    if (userStore.isLoggedIn && userStore.userInfo) {
+      console.log('用户已登录，跳转到个人中心')
+      router.push('/profile')
+    } else {
+      console.log('用户未登录，跳转到登录页面')
+      router.push('/login')
+    }
+  } catch (error) {
+    console.error('用户导航处理失败:', error)
+    // 出错时默认跳转到登录页
     router.push('/login')
   }
 }
@@ -291,26 +349,42 @@ const handleSearch = () => {
 }
 
 // 用户操作处理
-const handleUserCommand = (command: string) => {
-  switch (command) {
-    case 'profile':
-      router.push('/profile')
-      break
-    case 'messages':
-      router.push('/messages')
-      break
-    case 'admin':
-      // 检查管理员权限
-      if (userStore.isAdmin) {
-        router.push('/admin')
-      } else {
-        ElMessage.warning('您没有管理员权限')
+const handleUserCommand = async (command: string) => {
+  try {
+    // 确保用户状态已初始化
+    if (!userStore.userInfo) {
+      console.log('用户状态未初始化，尝试初始化...')
+      const initialized = await userStore.initUser()
+      if (!initialized) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
       }
-      break
-    case 'logout':
-      userStore.logout()
-      router.push('/')
-      break
+    }
+    
+    switch (command) {
+      case 'profile':
+        router.push('/profile')
+        break
+      case 'messages':
+        router.push('/messages')
+        break
+      case 'admin':
+        // 检查管理员权限
+        if (userStore.isAdmin) {
+          router.push('/admin')
+        } else {
+          ElMessage.warning('您没有管理员权限')
+        }
+        break
+      case 'logout':
+        await userStore.logout()
+        router.push('/')
+        break
+    }
+  } catch (error) {
+    console.error('用户操作处理失败:', error)
+    ElMessage.error('操作失败，请重试')
   }
 }
 
@@ -325,7 +399,7 @@ watch(() => route.path, () => {
 .global-navigation {
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 9999;
   background: white;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
@@ -652,6 +726,31 @@ watch(() => route.path, () => {
   text-overflow: ellipsis;
   max-width: 120px;
   min-width: 0;
+}
+
+/* 加载状态样式 */
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* 面包屑导航 */

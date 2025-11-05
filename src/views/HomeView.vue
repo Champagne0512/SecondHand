@@ -15,7 +15,7 @@
                     <el-icon><Search /></el-icon> 浏览商品
                   </el-button>
                   <el-button v-if="!userStore.isLoggedIn" size="large" @click="$router.push('/login')">
-                    <el-icon><Rocket /></el-icon> 立即登录
+                    <el-icon><User /></el-icon> 立即登录
                   </el-button>
                 </div>
               </div>
@@ -140,11 +140,11 @@
                       <div class="dynamic-meta">
                         <span class="dynamic-time">{{ item.time }}</span>
                         <div class="dynamic-actions">
-                          <el-button size="mini" text @click="handleLikeDynamic(item)">
+                          <el-button size="small" text @click="handleLikeDynamic(item)">
                             <el-icon><Star /></el-icon>
                             {{ item.likes }}
                           </el-button>
-                          <el-button size="mini" text @click="handleCommentDynamic(item)">
+                          <el-button size="small" text @click="handleCommentDynamic(item)">
                             <el-icon><ChatDotRound /></el-icon>
                             {{ item.comments }}
                           </el-button>
@@ -635,16 +635,27 @@ const refreshNews = () => {
 
 // 页面加载动画
 onMounted(async () => {
-  // 初始化用户信息
-  await userStore.initUser()
-  
-  // 获取热门商品数据
-  await fetchHotProducts()
-  
-  // 添加页面加载动画效果
-  setTimeout(() => {
-    document.body.classList.add('page-loaded')
-  }, 100)
+  try {
+    console.log('🔄 HomeView组件挂载，开始初始化用户状态...')
+    
+    // 初始化用户信息
+    await userStore.initUser()
+    
+    console.log('✅ HomeView用户状态初始化完成，登录状态:', userStore.isLoggedIn)
+    console.log('✅ 当前用户信息:', userStore.userInfo)
+    
+    // 获取热门商品数据
+    await fetchHotProducts()
+    
+    // 添加页面加载动画效果
+    setTimeout(() => {
+      document.body.classList.add('page-loaded')
+    }, 100)
+    
+    console.log('✅ HomeView组件初始化完成')
+  } catch (error) {
+    console.error('❌ HomeView组件初始化失败:', error)
+  }
 })
 </script>
 

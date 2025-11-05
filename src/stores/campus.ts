@@ -95,6 +95,10 @@ export const useCampusStore = defineStore('campus', () => {
   const getCampusPosts = async (limit: number = 20) => {
     isLoading.value = true
     try {
+      // 获取当前用户ID（如果已登录）
+      const { data: { user } } = await supabase.auth.getUser()
+      const currentUserId = user?.id
+
       // 如果没有表，返回模拟数据
       const { data: posts, error } = await supabase
         .from('campus_posts')
@@ -106,7 +110,7 @@ export const useCampusStore = defineStore('campus', () => {
         .limit(limit)
 
       if (error) {
-        console.warn('获取校园动态失败，使用模拟数据:', error)
+        console.warn('⚠️ 获取校园动态失败，使用模拟数据:', error)
         // 返回模拟数据
         campusPosts.value = [
           {
@@ -145,6 +149,25 @@ export const useCampusStore = defineStore('campus', () => {
         return campusPosts.value
       }
 
+      // 如果有用户登录，查询点赞状态
+      let postLikesMap = new Map()
+      if (currentUserId) {
+        const postIds = posts?.map(post => post.id) || []
+        if (postIds.length > 0) {
+          const { data: likesData } = await supabase
+            .from('post_likes')
+            .select('post_id')
+            .eq('user_id', currentUserId)
+            .in('post_id', postIds)
+          
+          if (likesData) {
+            likesData.forEach(like => {
+              postLikesMap.set(like.post_id, true)
+            })
+          }
+        }
+      }
+
       campusPosts.value = (posts || []).map(post => ({
         id: post.id,
         userId: post.user_id,
@@ -155,14 +178,16 @@ export const useCampusStore = defineStore('campus', () => {
         type: post.type,
         likes: post.likes || 0,
         comments: post.comments || 0,
-        isLiked: post.is_liked || false,
+        isLiked: postLikesMap.has(post.id) || false,
         createdAt: post.created_at,
         updatedAt: post.updated_at,
         location: post.location,
         tags: post.tags || []
       }))
+      
+      console.log('✅ 校园动态数据获取成功，数量:', campusPosts.value.length)
     } catch (error) {
-      console.error('获取校园动态失败:', error)
+      console.error('❌ 获取校园动态失败:', error)
       // 使用模拟数据
       campusPosts.value = [
         {
@@ -228,12 +253,23 @@ export const useCampusStore = defineStore('campus', () => {
 
       console.log('数据库插入成功，返回数据:', data)
 
+      // 获取当前用户信息，确保使用最新的用户数据
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      if (!currentUser) {
+        throw new Error('用户未登录')
+      }
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', currentUser.id)
+        .single()
+
       // 添加到本地列表
       const newPost = {
         id: data.id,
         userId: data.user_id,
-        username: '当前用户', // 实际项目中应该从用户信息获取
-        userAvatar: '/src/assets/default-avatar.png',
+        username: userProfile?.username || '当前用户',
+        userAvatar: userProfile?.avatar_url || '/src/assets/default-avatar.png',
         content: data.content,
         images: data.images || [],
         type: data.type,
@@ -398,6 +434,17 @@ export const useCampusStore = defineStore('campus', () => {
 
       if (error) throw error
 
+      // 获取当前用户信息，确保使用最新的用户数据
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      if (!currentUser) {
+        throw new Error('用户未登录')
+      }
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', currentUser.id)
+        .single()
+
       // 添加到本地列表
       lostFoundItems.value.unshift({
         id: data.id,
@@ -411,7 +458,7 @@ export const useCampusStore = defineStore('campus', () => {
         images: data.images,
         status: data.status,
         userId: data.user_id,
-        username: '当前用户',
+        username: userProfile?.username || '当前用户',
         createdAt: data.created_at
       })
 
