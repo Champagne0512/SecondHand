@@ -83,6 +83,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '校园动态 - 校园二手交易平台' }
   },
   {
+    path: '/campus/posts/edit/:id',
+    name: 'EditCampusPost',
+    component: () => import('@/views/campus/EditCampusPostView.vue'),
+    meta: { title: '编辑动态 - 校园二手交易平台', requiresAuth: true }
+  },
+  {
     path: '/campus/events',
     name: 'CampusEvents',
     component: () => import('@/views/campus/CampusEventsView.vue'),

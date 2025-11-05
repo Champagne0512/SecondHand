@@ -35,8 +35,12 @@
                   <el-icon><Star /></el-icon>
                   <span>我的收藏</span>
                 </el-menu-item>
-                <el-menu-item index="messages">
+                <el-menu-item index="my-posts">
                   <el-icon><ChatDotRound /></el-icon>
+                  <span>我的动态</span>
+                </el-menu-item>
+                <el-menu-item index="messages">
+                  <el-icon><Message /></el-icon>
                   <span>消息中心</span>
                 </el-menu-item>
               </el-menu>
@@ -158,6 +162,68 @@
               </div>
             </section>
 
+            <!-- 我的动态 -->
+            <section v-else-if="activeTab === 'my-posts'" class="tab-content">
+              <div class="tab-header">
+                <h2 class="tab-title">我的动态</h2>
+                <el-button type="primary" @click="$router.push('/campus/posts')">
+                  <el-icon><Plus /></el-icon>
+                  发布新动态
+                </el-button>
+              </div>
+              
+              <div v-if="myPosts.length > 0" class="posts-list">
+                <div 
+                  v-for="post in myPosts" 
+                  :key="post.id"
+                  class="post-item"
+                >
+                  <div class="post-content">
+                    <div class="post-header">
+                      <div class="post-info">
+                        <span class="post-type" :class="post.type">
+                          {{ getPostTypeLabel(post.type) }}
+                        </span>
+                        <span class="post-time">{{ formatDate(post.createdAt) }}</span>
+                      </div>
+                      <div class="post-actions">
+                        <el-button size="small" @click="handleEditPost(post)">编辑</el-button>
+                        <el-button size="small" type="danger" @click="handleDeletePost(post)">删除</el-button>
+                      </div>
+                    </div>
+                    
+                    <p class="post-text">{{ post.content }}</p>
+                    
+                    <!-- 图片展示 -->
+                    <div v-if="post.images && post.images.length > 0" class="post-images">
+                      <el-image
+                        v-for="(image, index) in post.images"
+                        :key="index"
+                        :src="image"
+                        :preview-src-list="post.images"
+                        :initial-index="index"
+                        fit="cover"
+                        class="post-image"
+                      />
+                    </div>
+                    
+                    <!-- 互动信息 -->
+                    <div class="post-stats">
+                      <span class="likes">❤️ {{ post.likes }} 点赞</span>
+                      <span class="comments">💬 {{ post.comments }} 评论</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div v-else class="empty-state">
+                <el-empty description="暂无发布的动态" />
+                <el-button type="primary" @click="$router.push('/campus/posts')">
+                  去发布第一条动态
+                </el-button>
+              </div>
+            </section>
+
             <!-- 消息中心 -->
             <section v-else-if="activeTab === 'messages'" class="tab-content">
               <div class="tab-header">
@@ -184,11 +250,13 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
+import { useCampusStore } from '@/stores/campus'
 import { supabaseProductApi } from '@/api/supabase'
+import { supabase } from '@/lib/supabase'
 
 import { 
   ShoppingBag, User, Goods, Star, 
-  ChatDotRound, Plus 
+  ChatDotRound, Plus, Message
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadProps } from 'element-plus'
@@ -196,6 +264,7 @@ import type { FormInstance, FormRules, UploadProps } from 'element-plus'
 const router = useRouter()
 const userStore = useUserStore()
 const productStore = useProductStore()
+const campusStore = useCampusStore()
 
 const activeTab = ref('profile')
 const profileFormRef = ref<FormInstance>()
@@ -220,6 +289,12 @@ const profileRules: FormRules = {
 const myProducts = computed(() => {
   if (!userStore.userInfo) return []
   return productStore.products.filter(p => p.sellerId === userStore.userInfo!.id)
+})
+
+// 我的动态
+const myPosts = computed(() => {
+  if (!userStore.userInfo) return []
+  return campusStore.campusPosts.filter(post => post.userId === userStore.userInfo!.id)
 })
 
 // 获取我的商品
@@ -258,6 +333,16 @@ const fetchMyProducts = async () => {
   }
 }
 
+// 获取我的动态
+const fetchMyPosts = async () => {
+  try {
+    await campusStore.getCampusPosts(50) // 获取更多动态以便筛选
+  } catch (error) {
+    console.error('获取动态失败:', error)
+    ElMessage.error('获取动态列表失败')
+  }
+}
+
 // 收藏商品（模拟数据）
 const favoriteProducts = computed(() => {
   return productStore.products.slice(0, 3) // 模拟收藏
@@ -282,9 +367,28 @@ const getStatusText = (status: string) => {
   return statusMap[status] || '未知'
 }
 
+// 获取动态类型标签
+const getPostTypeLabel = (type: string) => {
+  const labelMap: Record<string, string> = {
+    text: '文字',
+    image: '图片',
+    trade: '交易',
+    event: '活动',
+    help: '求助'
+  }
+  return labelMap[type] || type
+}
+
 // 菜单选择
-const handleMenuSelect = (index: string) => {
+const handleMenuSelect = async (index: string) => {
   activeTab.value = index
+  
+  // 根据选择的标签页加载相应的数据
+  if (index === 'my-products') {
+    await fetchMyProducts()
+  } else if (index === 'my-posts') {
+    await fetchMyPosts()
+  }
 }
 
 // 头像上传
@@ -411,12 +515,74 @@ const handleDeleteProduct = async (product: any) => {
   }
 }
 
+// 编辑动态
+const handleEditPost = (post: any) => {
+  // 跳转到动态编辑页面，传递动态ID
+  router.push(`/campus/posts/edit/${post.id}`)
+}
+
+// 删除动态
+const handleDeletePost = async (post: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除动态 "${post.content.substring(0, 30)}..." 吗？此操作不可恢复！`,
+      '确认删除',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'error',
+        confirmButtonClass: 'el-button--danger',
+        beforeClose: (action, instance, done) => {
+          if (action === 'confirm') {
+            instance.confirmButtonLoading = true
+            instance.confirmButtonText = '删除中...'
+            setTimeout(() => {
+              done()
+            }, 300)
+          } else {
+            done()
+          }
+        }
+      }
+    )
+    
+    // 调用删除动态API
+    const { error } = await supabase
+      .from('campus_posts')
+      .delete()
+      .eq('id', post.id)
+    
+    if (error) {
+      throw error
+    }
+    
+    // 从本地列表中移除
+    const index = campusStore.campusPosts.findIndex(p => p.id === post.id)
+    if (index !== -1) {
+      campusStore.campusPosts.splice(index, 1)
+    }
+    
+    ElMessage.success('动态删除成功')
+    
+    // 重新加载动态数据，确保列表更新
+    await fetchMyPosts()
+  } catch (error: any) {
+    // 用户取消删除或其他错误
+    if (error !== 'cancel') {
+      console.error('删除动态失败:', error)
+      ElMessage.error(error.message || '删除动态失败，请重试')
+    }
+  }
+}
+
 onMounted(async () => {
   await userStore.initUser()
   
   // 根据当前标签页加载不同的数据
   if (activeTab.value === 'my-products') {
     await fetchMyProducts()
+  } else if (activeTab.value === 'my-posts') {
+    await fetchMyPosts()
   } else {
     await productStore.fetchProducts()
   }
@@ -695,6 +861,111 @@ onMounted(async () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* 我的动态样式 */
+.posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.post-item {
+  border: 1px solid #e4e7ed;
+  border-radius: 12px;
+  padding: 20px;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.post-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.post-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.post-type {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.post-type.text {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.post-type.image {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.post-type.trade {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.post-type.event {
+  background: #f9f0ff;
+  color: #722ed1;
+}
+
+.post-type.help {
+  background: #fff2f0;
+  color: #f5222d;
+}
+
+.post-time {
+  color: #909399;
+  font-size: 12px;
+}
+
+.post-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.post-text {
+  color: #303133;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.post-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.post-image {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.post-stats {
+  display: flex;
+  gap: 16px;
+  color: #909399;
+  font-size: 12px;
 }
 
 /* 消息预览 */
