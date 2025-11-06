@@ -233,6 +233,13 @@ export const useCampusStore = defineStore('campus', () => {
         tags: postData.tags
       })
 
+      // 先获取用户信息，确保在插入数据前就有用户信息
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', user.id)
+        .single()
+
       const { data, error } = await supabase
         .from('campus_posts')
         .insert({
@@ -253,23 +260,12 @@ export const useCampusStore = defineStore('campus', () => {
 
       console.log('数据库插入成功，返回数据:', data)
 
-      // 获取当前用户信息，确保使用最新的用户数据
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
-      if (!currentUser) {
-        throw new Error('用户未登录')
-      }
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('username, avatar_url')
-        .eq('id', currentUser.id)
-        .single()
-
       // 添加到本地列表
       const newPost = {
         id: data.id,
         userId: data.user_id,
         username: userProfile?.username || '当前用户',
-        userAvatar: userProfile?.avatar_url || '/src/assets/default-avatar.png',
+        userAvatar: userProfile?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
         content: data.content,
         images: data.images || [],
         type: data.type,
@@ -416,6 +412,13 @@ export const useCampusStore = defineStore('campus', () => {
     if (!user) throw new Error('用户未登录')
 
     try {
+      // 先获取用户信息，确保在插入数据前就有用户信息
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single()
+
       const { data, error } = await supabase
         .from('lost_found_items')
         .insert({
@@ -433,17 +436,6 @@ export const useCampusStore = defineStore('campus', () => {
         .single()
 
       if (error) throw error
-
-      // 获取当前用户信息，确保使用最新的用户数据
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
-      if (!currentUser) {
-        throw new Error('用户未登录')
-      }
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', currentUser.id)
-        .single()
 
       // 添加到本地列表
       lostFoundItems.value.unshift({

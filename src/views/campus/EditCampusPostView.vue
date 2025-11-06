@@ -313,54 +313,6 @@ const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
   
   return uploadedUrls
 }
-
-// 检查存储桶是否存在
-const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.storage.getBucket(bucketName)
-    if (error) {
-      console.warn(`存储桶 ${bucketName} 不存在或无法访问:`, error.message)
-      return false
-    }
-    console.log(`存储桶 ${bucketName} 存在:`, data)
-    return true
-  } catch (error) {
-    console.error(`检查存储桶 ${bucketName} 失败:`, error)
-    return false
-  }
-}
-
-// 上传图片到Supabase
-const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
-  const uploadedUrls: string[] = []
-  const bucketName = 'campus-posts'
-  
-  // 检查存储桶是否存在
-  const bucketExists = await checkStorageBucket(bucketName)
-  if (!bucketExists) {
-    console.error(`存储桶 ${bucketName} 不存在，无法上传图片`)
-    throw new Error(`存储桶 ${bucketName} 不存在，请联系管理员配置存储桶`)
-  }
-  
-  for (const file of files) {
-    if (!file.raw) continue
-    
-    try {
-      // 生成唯一文件名
-      const fileExtension = file.name.split('.').pop() || 'jpg'
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`
-      
-      console.log(`开始上传图片到存储桶 ${bucketName}:`, fileName)
-      
-      // 上传到Supabase存储桶
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(fileName, file.raw)
-      
-      if (error) {
-        console.error('图片上传错误详情:', error)
-        throw new Error(`图片上传失败: ${error.message}`)
-      }
       
       // 获取公开URL
       const { data: { publicUrl } } = supabase.storage

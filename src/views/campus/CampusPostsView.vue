@@ -715,6 +715,13 @@ const addComment = async () => {
   }
 
   try {
+    // 先获取当前用户信息
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('username, avatar_url')
+      .eq('id', user.id)
+      .single()
+
     const { data, error } = await supabase
       .from('post_comments')
       .insert({
@@ -727,13 +734,13 @@ const addComment = async () => {
 
     if (error) throw error
 
-    // 添加到本地列表
+    // 添加到本地列表，使用真实的用户信息
     comments.value.unshift({
       id: data.id,
       postId: data.post_id,
       userId: data.user_id,
-      username: '当前用户',
-      userAvatar: '/src/assets/default-avatar.png',
+      username: userProfile?.username || '当前用户',
+      userAvatar: userProfile?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
       content: data.content,
       likes: 0,
       isLiked: false,
