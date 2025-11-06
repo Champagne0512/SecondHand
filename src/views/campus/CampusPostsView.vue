@@ -405,63 +405,10 @@ const handleImageChange: UploadProps['onChange'] = (file, fileList) => {
   console.log('更新后的imageList:', imageList.value)
 }
 
-// 检查存储桶是否存在，如果不存在则使用备用存储桶
-const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.storage.getBucket(bucketName)
-    if (error) {
-      console.warn(`存储桶 ${bucketName} 不存在或无法访问:`, error.message)
-      
-      // 检查是否有可用的备用存储桶
-      const availableBuckets = ['product-images', 'user-avatars']
-      for (const backupBucket of availableBuckets) {
-        const { data: backupData, error: backupError } = await supabase.storage.getBucket(backupBucket)
-        if (!backupError) {
-          console.log(`使用备用存储桶: ${backupBucket}`)
-          return true // 返回true表示有可用的存储桶
-        }
-      }
-      
-      console.error('没有可用的存储桶，请管理员配置存储桶')
-      return false
-    }
-    console.log(`存储桶 ${bucketName} 存在:`, data)
-    return true
-  } catch (error: any) {
-    console.error(`检查存储桶 ${bucketName} 失败:`, error)
-    return false
-  }
-}
-
 // 上传图片到Supabase
 const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
   const uploadedUrls: string[] = []
-  let bucketName = 'campus-posts'
-  
-  // 检查存储桶是否存在
-  const bucketExists = await checkStorageBucket(bucketName)
-  if (!bucketExists) {
-    console.warn(`存储桶 ${bucketName} 不存在，尝试使用备用存储桶`)
-    
-    // 尝试使用备用存储桶
-    const availableBuckets = ['product-images', 'user-avatars']
-    let foundBucket = false
-    
-    for (const backupBucket of availableBuckets) {
-      const { data: backupData, error: backupError } = await supabase.storage.getBucket(backupBucket)
-      if (!backupError) {
-        bucketName = backupBucket
-        foundBucket = true
-        console.log(`使用备用存储桶: ${bucketName}`)
-        break
-      }
-    }
-    
-    if (!foundBucket) {
-      console.error('没有可用的存储桶，请管理员配置存储桶')
-      throw new Error(`存储桶 ${bucketName} 不存在，请联系管理员配置存储桶`)
-    }
-  }
+  const bucketName = 'campus-posts'
   
   for (const file of files) {
     if (!file.raw) continue
