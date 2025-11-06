@@ -405,28 +405,25 @@ const handleImageChange: UploadProps['onChange'] = (file, fileList) => {
   console.log('更新后的imageList:', imageList.value)
 }
 
-// 检查存储桶是否存在，如果不存在则尝试创建
+// 检查存储桶是否存在，如果不存在则使用备用存储桶
 const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase.storage.getBucket(bucketName)
     if (error) {
       console.warn(`存储桶 ${bucketName} 不存在或无法访问:`, error.message)
       
-      // 尝试创建存储桶
-      console.log(`尝试创建存储桶 ${bucketName}...`)
-      const { data: createData, error: createError } = await supabase.storage.createBucket(bucketName, {
-        public: true,
-        fileSizeLimit: 5242880, // 5MB
-        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-      })
-      
-      if (createError) {
-        console.error(`创建存储桶 ${bucketName} 失败:`, createError)
-        return false
+      // 检查是否有可用的备用存储桶
+      const availableBuckets = ['product-images', 'user-avatars']
+      for (const backupBucket of availableBuckets) {
+        const { data: backupData, error: backupError } = await supabase.storage.getBucket(backupBucket)
+        if (!backupError) {
+          console.log(`使用备用存储桶: ${backupBucket}`)
+          return true // 返回true表示有可用的存储桶
+        }
       }
       
-      console.log(`存储桶 ${bucketName} 创建成功:`, createData)
-      return true
+      console.error('没有可用的存储桶，请管理员配置存储桶')
+      return false
     }
     console.log(`存储桶 ${bucketName} 存在:`, data)
     return true
@@ -439,13 +436,31 @@ const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
 // 上传图片到Supabase
 const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
   const uploadedUrls: string[] = []
-  const bucketName = 'campus-posts'
+  let bucketName = 'campus-posts'
   
   // 检查存储桶是否存在
   const bucketExists = await checkStorageBucket(bucketName)
   if (!bucketExists) {
-    console.error(`存储桶 ${bucketName} 不存在，无法上传图片`)
-    throw new Error(`存储桶 ${bucketName} 不存在，请联系管理员配置存储桶`)
+    console.warn(`存储桶 ${bucketName} 不存在，尝试使用备用存储桶`)
+    
+    // 尝试使用备用存储桶
+    const availableBuckets = ['product-images', 'user-avatars']
+    let foundBucket = false
+    
+    for (const backupBucket of availableBuckets) {
+      const { data: backupData, error: backupError } = await supabase.storage.getBucket(backupBucket)
+      if (!backupError) {
+        bucketName = backupBucket
+        foundBucket = true
+        console.log(`使用备用存储桶: ${bucketName}`)
+        break
+      }
+    }
+    
+    if (!foundBucket) {
+      console.error('没有可用的存储桶，请管理员配置存储桶')
+      throw new Error(`存储桶 ${bucketName} 不存在，请联系管理员配置存储桶`)
+    }
   }
   
   for (const file of files) {
@@ -454,7 +469,7 @@ const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
     try {
       // 生成唯一文件名
       const fileExtension = file.name.split('.').pop() || 'jpg'
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`
+      const fileName = `campus-posts/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`
       
       console.log(`开始上传图片到存储桶 ${bucketName}:`, fileName)
       
