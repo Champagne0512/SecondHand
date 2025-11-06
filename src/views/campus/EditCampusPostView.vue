@@ -250,17 +250,32 @@ const handleImageChange: UploadProps['onChange'] = (file, fileList) => {
   console.log('更新后的imageList:', imageList.value)
 }
 
-// 检查存储桶是否存在
+// 检查存储桶是否存在，如果不存在则尝试创建
 const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase.storage.getBucket(bucketName)
     if (error) {
       console.warn(`存储桶 ${bucketName} 不存在或无法访问:`, error.message)
-      return false
+      
+      // 尝试创建存储桶
+      console.log(`尝试创建存储桶 ${bucketName}...`)
+      const { data: createData, error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true,
+        fileSizeLimit: 5242880, // 5MB
+        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      })
+      
+      if (createError) {
+        console.error(`创建存储桶 ${bucketName} 失败:`, createError)
+        return false
+      }
+      
+      console.log(`存储桶 ${bucketName} 创建成功:`, createData)
+      return true
     }
     console.log(`存储桶 ${bucketName} 存在:`, data)
     return true
-  } catch (error) {
+  } catch (error: any) {
     console.error(`检查存储桶 ${bucketName} 失败:`, error)
     return false
   }
@@ -297,22 +312,6 @@ const uploadImages = async (files: UploadUserFile[]): Promise<string[]> => {
         console.error('图片上传错误详情:', error)
         throw new Error(`图片上传失败: ${error.message}`)
       }
-      
-      // 获取公开URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(fileName)
-      
-      console.log('图片上传成功:', { fileName, publicUrl })
-      uploadedUrls.push(publicUrl)
-    } catch (error) {
-      console.error('图片上传失败:', error)
-      throw new Error(`图片上传失败: ${error.message}`)
-    }
-  }
-  
-  return uploadedUrls
-}
       
       // 获取公开URL
       const { data: { publicUrl } } = supabase.storage

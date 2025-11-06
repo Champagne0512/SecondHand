@@ -405,13 +405,28 @@ const handleImageChange: UploadProps['onChange'] = (file, fileList) => {
   console.log('更新后的imageList:', imageList.value)
 }
 
-// 检查存储桶是否存在
+// 检查存储桶是否存在，如果不存在则尝试创建
 const checkStorageBucket = async (bucketName: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase.storage.getBucket(bucketName)
     if (error) {
       console.warn(`存储桶 ${bucketName} 不存在或无法访问:`, error.message)
-      return false
+      
+      // 尝试创建存储桶
+      console.log(`尝试创建存储桶 ${bucketName}...`)
+      const { data: createData, error: createError } = await supabase.storage.createBucket(bucketName, {
+        public: true,
+        fileSizeLimit: 5242880, // 5MB
+        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      })
+      
+      if (createError) {
+        console.error(`创建存储桶 ${bucketName} 失败:`, createError)
+        return false
+      }
+      
+      console.log(`存储桶 ${bucketName} 创建成功:`, createData)
+      return true
     }
     console.log(`存储桶 ${bucketName} 存在:`, data)
     return true
