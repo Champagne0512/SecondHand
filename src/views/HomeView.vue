@@ -953,7 +953,7 @@ onMounted(async () => {
 }
 
 .banner-actions .el-button:hover {
-  transform: translateY(-6px) scale(1.08) rotateX(8deg) rotateY(3deg);
+  transform: translateY(-6px) scale(1.08);
   box-shadow: 
     0 12px 40px rgba(0, 0, 0, 0.4),
     0 0 30px rgba(255, 255, 255, 0.6),
@@ -985,6 +985,10 @@ onMounted(async () => {
   }
 }
 
+
+
+
+
 .banner-image {
   flex: 1;
   text-align: center;
@@ -1002,10 +1006,12 @@ onMounted(async () => {
 }
 
 .banner-image img:hover {
-  transform: none;
-  box-shadow: none;
-  animation: none;
-  filter: none;
+  animation-play-state: paused;
+  transform: scale(1.1);
+  filter: 
+    drop-shadow(0 8px 25px rgba(102, 126, 234, 0.8))
+    hue-rotate(45deg) brightness(1.2);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .carousel-indicators {
