@@ -43,6 +43,10 @@
                   <el-icon><Message /></el-icon>
                   <span>消息中心</span>
                 </el-menu-item>
+                <el-menu-item index="credit">
+                  <el-icon><Medal /></el-icon>
+                  <span>信用详情</span>
+                </el-menu-item>
               </el-menu>
             </nav>
           </aside>
@@ -238,6 +242,47 @@
                 </el-button>
               </div>
             </section>
+
+            <!-- 信用详情 -->
+            <section v-else-if="activeTab === 'credit'" class="tab-content">
+              <div class="tab-header">
+                <h2 class="tab-title">信用详情</h2>
+                <el-button type="primary" @click="$router.push('/credit')">
+                  查看详细信用报告
+                </el-button>
+              </div>
+              
+              <div class="credit-overview">
+                <div class="credit-score-card">
+                  <div class="score-display">
+                    <div class="score-circle">
+                      <span class="score-value">{{ creditScore || 100 }}</span>
+                      <span class="score-label">信用分</span>
+                    </div>
+                  </div>
+                  <div class="score-info">
+                    <h3>信用等级: {{ getCreditLevel(creditScore || 100) }}</h3>
+                    <p>交易评价: {{ positiveReviews || 0 }} 好评 / {{ totalReviews || 0 }} 总评价</p>
+                    <p>好评率: {{ getPositiveRate() }}%</p>
+                  </div>
+                </div>
+                
+                <div class="credit-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">完成交易</span>
+                    <span class="stat-value">{{ completedTransactions || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">好评率</span>
+                    <span class="stat-value">{{ getPositiveRate() }}%</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">响应速度</span>
+                    <span class="stat-value">{{ responseSpeed || '良好' }}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </div>
@@ -256,7 +301,7 @@ import { supabase } from '@/lib/supabase'
 
 import { 
   ShoppingBag, User, Goods, Star, 
-  ChatDotRound, Plus, Message
+  ChatDotRound, Plus, Message, Medal
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadProps } from 'element-plus'
@@ -351,6 +396,13 @@ const favoriteProducts = computed(() => {
 // 未读消息数（模拟数据）
 const unreadCount = ref(3)
 
+// 信用相关数据
+const creditScore = ref(100)
+const positiveReviews = ref(0)
+const totalReviews = ref(0)
+const completedTransactions = ref(0)
+const responseSpeed = ref('良好')
+
 // 格式化日期
 const formatDate = (dateString: string) => {
   if (!dateString) return ''
@@ -379,6 +431,36 @@ const getPostTypeLabel = (type: string) => {
   return labelMap[type] || type
 }
 
+// 获取信用等级
+const getCreditLevel = (score: number) => {
+  if (score >= 90) return '优秀'
+  if (score >= 80) return '良好'
+  if (score >= 70) return '一般'
+  if (score >= 60) return '及格'
+  return '较差'
+}
+
+// 计算好评率
+const getPositiveRate = () => {
+  if (totalReviews.value === 0) return 100
+  return Math.round((positiveReviews.value / totalReviews.value) * 100)
+}
+
+// 获取信用数据
+const fetchCreditData = async () => {
+  try {
+    // 模拟获取信用数据
+    // 实际项目中应该调用API获取真实数据
+    creditScore.value = 95
+    positiveReviews.value = 12
+    totalReviews.value = 13
+    completedTransactions.value = 15
+    responseSpeed.value = '良好'
+  } catch (error) {
+    console.error('获取信用数据失败:', error)
+  }
+}
+
 // 菜单选择
 const handleMenuSelect = async (index: string) => {
   activeTab.value = index
@@ -388,6 +470,8 @@ const handleMenuSelect = async (index: string) => {
     await fetchMyProducts()
   } else if (index === 'my-posts') {
     await fetchMyPosts()
+  } else if (index === 'credit') {
+    await fetchCreditData()
   }
 }
 
@@ -1001,6 +1085,176 @@ onMounted(async () => {
 .messages-preview p {
   margin-bottom: 16px;
   color: #606266;
+}
+
+/* 信用详情样式 */
+.credit-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.credit-score-card {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+}
+
+.score-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.score-value {
+  font-size: 36px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+.score-info h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+}
+
+.score-info p {
+  margin: 8px 0;
+  opacity: 0.9;
+}
+
+.credit-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #495057;
+}
+
+/* 信用详情样式 */
+.credit-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.credit-score-card {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+}
+
+.score-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.score-value {
+  font-size: 36px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+.score-info h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+}
+
+.score-info p {
+  margin: 8px 0;
+  opacity: 0.9;
+}
+
+.credit-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #495057;
 }
 
 /* 空状态 */
