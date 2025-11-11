@@ -94,7 +94,7 @@
               <h4 class="item-title" @click="$router.push(`/product/${item.product_id}`)">
                 {{ item.title }}
               </h4>
-              <p class="item-description">{{ item.description }}</p>
+              <p class="item-description">{{ formatDescription(item.description) }}</p>
               <div class="item-meta">
                 <span class="condition">{{ item.condition }}</span>
                 <span class="location">{{ item.location }}</span>
@@ -166,7 +166,8 @@
             <el-button 
               type="primary" 
               size="large" 
-              :disabled="selectedItems.length === 0"
+              :disabled="selectedItems.length === 0 || checkoutLoading"
+              :loading="checkoutLoading"
               @click="handleCheckout"
               class="checkout-btn"
             >
@@ -189,6 +190,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
+import { useTransactionStore } from '@/stores/transaction'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   ShoppingCart, 
@@ -198,9 +200,11 @@ import {
 
 const router = useRouter()
 const cartStore = useCartStore()
+const transactionStore = useTransactionStore()
 
 // 选中的商品ID列表
 const selectedItems = ref<string[]>([])
+const checkoutLoading = ref(false)
 
 // 计算属性
 const selectAll = computed({
@@ -223,6 +227,20 @@ const selectedAmount = computed(() => {
     .filter(item => selectedItems.value.includes(item.product_id))
     .reduce((total, item) => total + item.subtotal, 0)
 })
+
+const formatDescription = (description?: string | null) => {
+  if (!description) {
+    return '暂无商品描述'
+  }
+  const plain = description
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!plain) {
+    return '暂无商品描述'
+  }
+  return plain.length > 60 ? `${plain.slice(0, 60)}...` : plain
+}
 
 // 生命周期
 onMounted(async () => {
@@ -297,15 +315,46 @@ const handleClearCart = async () => {
   }
 }
 
-const handleCheckout = () => {
+const handleCheckout = async () => {
   if (selectedItems.value.length === 0) {
     ElMessage.warning('请选择要结算的商品')
     return
   }
-  
-  // 这里可以跳转到结算页面
-  ElMessage.info('结算功能开发中...')
-  // router.push('/checkout')
+
+  try {
+    checkoutLoading.value = true
+    const result = await transactionStore.checkoutCartItems([...selectedItems.value])
+    const successCount = result?.successCount || 0
+    const failedItems = result?.failed || []
+
+    if (successCount === 0) {
+      const failMsg = failedItems[0]?.message || '结算失败，请稍后重试'
+      ElMessage.warning(failMsg)
+      return
+    }
+
+    await cartStore.fetchCartItems()
+    selectedItems.value = []
+    ElMessage.success(`成功创建 ${successCount} 笔订单`)
+
+    if (failedItems.length > 0) {
+      ElMessage.warning(failedItems[0]?.message || '部分商品结算失败')
+    }
+
+    router.push({
+      path: '/transactions',
+      query: {
+        type: 'buy',
+        tab: 'pending',
+        source: 'cart'
+      }
+    })
+  } catch (error: any) {
+    console.error('结算失败:', error)
+    ElMessage.error(error?.message || '结算失败，请稍后重试')
+  } finally {
+    checkoutLoading.value = false
+  }
 }
 </script>
 
@@ -428,6 +477,10 @@ const handleCheckout = () => {
   width: 60px;
   display: flex;
   justify-content: center;
+}
+
+.item-select :deep(.el-checkbox__label) {
+  display: none;
 }
 
 .item-image {

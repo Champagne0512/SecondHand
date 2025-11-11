@@ -1,172 +1,331 @@
 <template>
   <div id="app">
-    <!-- 全局导航 -->
-    <GlobalNavigation v-if="showNavigation" />
+    <!-- 统一古风导航栏 -->
+    <nav class="unified-nav">
+      <div class="nav-container">
+        <div class="nav-brand">
+          <div class="logo-wrapper">
+            <span class="logo-icon">📜</span>
+            <h1 class="logo">诗词雅集</h1>
+          </div>
+        </div>
+        <div class="nav-menu">
+          <router-link to="/" class="nav-link" active-class="active">首页</router-link>
+          <router-link to="/poems" class="nav-link" active-class="active">诗词浏览</router-link>
+          <router-link to="/search" class="nav-link" active-class="active">搜索</router-link>
+          <router-link to="/profile" class="nav-link" active-class="active">个人中心</router-link>
+        </div>
+        <div class="nav-actions">
+          <div class="auth-buttons">
+            <button class="btn-login">登录</button>
+            <button class="btn-register">注册</button>
+          </div>
+        </div>
+      </div>
+    </nav>
     
-    <!-- 主要内容区域 -->
-    <main class="main-content" :class="{ 'no-nav': !showNavigation }">
+    <main class="app-main">
       <router-view />
     </main>
     
-    <!-- 全局浮动AI助手 -->
-    <FloatingAIAssistant />
+    <!-- 统一古风页脚 -->
+    <footer class="unified-footer">
+      <div class="footer-container">
+        <div class="footer-content">
+          <div class="footer-brand">
+            <span class="footer-logo-icon">📜</span>
+            <h3>诗词雅集</h3>
+            <p>传承中华文化，品味诗词之美</p>
+          </div>
+          <div class="footer-links">
+            <div class="link-group">
+              <h4>快速导航</h4>
+              <router-link to="/">首页</router-link>
+              <router-link to="/poems">诗词浏览</router-link>
+              <router-link to="/search">搜索</router-link>
+            </div>
+            <div class="link-group">
+              <h4>诗人名录</h4>
+              <a href="#">李白</a>
+              <a href="#">杜甫</a>
+              <a href="#">苏轼</a>
+              <a href="#">李清照</a>
+            </div>
+            <div class="link-group">
+              <h4>关于我们</h4>
+              <a href="#">团队介绍</a>
+              <a href="#">联系我们</a>
+              <a href="#">帮助中心</a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>&copy; 2024 诗词雅集 - 让诗词之美触手可及</p>
+          <div class="social-links">
+            <a href="#" class="social-link">微信</a>
+            <a href="#" class="social-link">微博</a>
+            <a href="#" class="social-link">知乎</a>
+          </div>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
-<script setup lang="ts">
-import { computed, onMounted, onErrorCaptured } from 'vue'
-import { useRoute } from 'vue-router'
-import { useUserStore } from '@/stores/user'
-import { useCampusStore } from '@/stores/campus'
-import { useCartStore } from '@/stores/cart'
-import GlobalNavigation from '@/components/GlobalNavigation.vue'
-import FloatingAIAssistant from '@/components/FloatingAIAssistant.vue'
-
-const route = useRoute()
-const userStore = useUserStore()
-const campusStore = useCampusStore()
-
-// 计算是否显示导航栏
-const showNavigation = computed(() => {
-  // 在登录、注册和管理员登录页面不显示导航栏
-  const hideNavRoutes = ['/login', '/register', '/admin/login']
-  return !hideNavRoutes.includes(route.path)
-})
-
-// 全局错误处理
-onErrorCaptured((error, instance, info) => {
-  console.error('全局错误捕获:', error, info)
-  // 可以在这里添加错误上报逻辑
-  return false // 阻止错误继续向上传播
-})
-
-// 设置全局用户状态恢复函数
-const setupGlobalUserStateRecovery = () => {
-  // 用户状态恢复函数
-  (window as any).restoreUserState = async () => {
-    console.log('🔄 全局用户状态恢复函数被调用')
-    try {
-      await userStore.initUser()
-      console.log('✅ 全局用户状态恢复完成')
-    } catch (error) {
-      console.error('❌ 全局用户状态恢复失败:', error)
-    }
-  }
-  
-  // 用户状态更新函数
-  (window as any).updateUserState = async (session: any) => {
-    console.log('🔄 全局用户状态更新函数被调用，用户ID:', session.user.id)
-    try {
-      // 直接调用用户store的恢复函数
-      if (userStore.restoreUserFromSession) {
-        await userStore.restoreUserFromSession(session)
-      } else {
-        await userStore.initUser()
-      }
-      console.log('✅ 全局用户状态更新完成')
-    } catch (error) {
-      console.error('❌ 全局用户状态更新失败:', error)
-    }
-  }
-}
-
-// 添加初始化状态标记，防止重复初始化
-let isAppInitialized = false
-
-onMounted(async () => {
-  try {
-    // 防止重复初始化
-    if (isAppInitialized) {
-      console.log('应用已初始化，跳过重复初始化')
-      return
-    }
-    
-    isAppInitialized = true
-    
-    // 设置全局用户状态恢复函数
-    setupGlobalUserStateRecovery()
-    
-    // 等待更长时间确保数据库连接监控完全启动
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    // 首先检查数据库连接状态
-    console.log('🔄 检查数据库连接状态...')
-    const isConnected = true // 暂时跳过数据库连接检查
-    
-    if (!isConnected) {
-      console.warn('⚠️ 数据库连接异常，延迟初始化用户状态')
-      // 延迟重试用户状态初始化
-      setTimeout(async () => {
-        try {
-          console.log('🔄 延迟初始化用户状态...')
-          await userStore.initUser()
-          console.log('✅ 延迟用户状态初始化完成')
-          
-          // 如果有用户登录，加载相关数据
-          if (userStore.isLoggedIn) {
-            // 初始化购物车
-            const cartStore = useCartStore()
-            await cartStore.initializeCart()
-            console.log('✅ 用户已登录，加载购物车数据')
-            
-            // 初始化校园数据
-            await campusStore.getCampusPosts()
-            console.log('✅ 用户已登录，加载校园动态数据')
-          }
-        } catch (error) {
-          console.error('❌ 延迟用户状态初始化失败:', error)
-        }
-      }, 2000)
-    } else {
-      // 数据库连接正常，立即初始化用户状态
-      console.log('✅ 数据库连接正常，初始化用户状态')
-      await userStore.initUser()
-      
-      // 如果有用户登录，加载相关数据
-      if (userStore.isLoggedIn) {
-        // 初始化购物车
-        const cartStore = useCartStore()
-        await cartStore.initializeCart()
-        console.log('✅ 用户已登录，加载购物车数据')
-        
-        // 初始化校园数据
-        await campusStore.getCampusPosts()
-        console.log('✅ 用户已登录，加载校园动态数据')
-      }
-    }
-    
-    console.log('✅ 应用初始化完成')
-  } catch (error) {
-    console.error('❌ 应用初始化失败:', error)
-  }
-})
+<script setup>
+// 应用主组件
 </script>
 
 <style scoped>
-#app {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* 统一古风导航栏样式 */
+.unified-nav {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  font-family: var(--font-ui);
 }
 
-.main-content {
-  min-height: 100vh;
+.nav-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+}
+
+.logo-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-icon {
+  font-size: 2rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+.logo {
+  color: var(--accent-color);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav-link {
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  font-family: var(--font-ui);
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--primary-color);
+  background: rgba(139, 115, 85, 0.1);
+}
+
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: var(--primary-color);
+  border-radius: 50%;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-login,
+.btn-register {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--primary-color);
+  border-radius: 25px;
+  background: transparent;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-family: var(--font-ui);
+}
+
+.btn-register {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-login:hover {
+  background: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.btn-register:hover {
+  background: #6d5c47;
+  transform: translateY(-2px);
+}
+
+.app-main {
+  min-height: calc(100vh - 160px);
+  padding: 0;
+}
+
+/* 统一古风页脚样式 */
+.unified-footer {
+  background: linear-gradient(135deg, var(--accent-color) 0%, #1a202c 100%);
+  color: white;
+  padding: 3rem 0 1.5rem;
+  font-family: var(--font-ui);
+}
+
+.footer-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 4rem;
+  margin-bottom: 2rem;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.footer-logo-icon {
+  font-size: 3rem;
+}
+
+.footer-brand h3 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.footer-brand p {
+  opacity: 0.8;
+  line-height: 1.6;
+}
+
+.footer-links {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.link-group h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #e2e8f0;
+}
+
+.link-group a {
+  display: block;
+  color: #a0aec0;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.link-group a:hover {
+  color: var(--primary-color);
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 2rem;
+  border-top: 1px solid #4a5568;
+}
+
+.social-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.social-link {
+  color: #a0aec0;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 1px solid #4a5568;
+  border-radius: 20px;
   transition: all 0.3s ease;
 }
 
-.main-content.no-nav {
-  padding-top: 0;
+.social-link:hover {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
-/* 确保导航栏不被背景覆盖 */
-.global-navigation {
-  position: relative;
-  z-index: 1000;
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .main-content {
-    padding-top: 0;
+  .nav-container {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .nav-menu {
+    gap: 1rem;
+  }
+  
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .footer-links {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .footer-bottom {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
   }
 }
 </style>

@@ -89,6 +89,15 @@
                 联系卖家
               </el-button>
               <el-button 
+                type="warning" 
+                size="large" 
+                :disabled="product.status !== 'available'"
+                @click="handleBuyNow"
+              >
+                <el-icon><Wallet /></el-icon>
+                立即购买
+              </el-button>
+              <el-button 
                 type="success" 
                 size="large" 
                 :disabled="product.status !== 'available'"
@@ -160,7 +169,7 @@ import { useCartStore } from '@/stores/cart'
 import { ElMessage } from 'element-plus'
 
 import { 
-  ChatDotRound, Star, Share, ShoppingCart
+  ChatDotRound, Star, Share, ShoppingCart, Wallet
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -318,6 +327,50 @@ const handleAddToCart = async () => {
   }
 }
 
+// 立即购买
+const handleBuyNow = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录后再购买商品')
+    router.push('/login')
+    return
+  }
+  
+  if (!product.value) {
+    ElMessage.error('商品信息不存在')
+    return
+  }
+  
+  // 检查商品状态
+  if (product.value.status !== 'available') {
+    ElMessage.warning('该商品当前不可购买')
+    return
+  }
+  
+  // 检查是否是卖家自己
+  const currentUserId = await getCurrentUserId()
+  if (product.value.sellerId === currentUserId) {
+    ElMessage.warning('不能购买自己的商品')
+    return
+  }
+  
+  try {
+    console.log('立即购买，商品ID:', product.value.id)
+    
+    // 跳转到创建交易页面
+    router.push({
+      path: '/transactions/create',
+      query: {
+        productId: product.value.id,
+        quantity: 1
+      }
+    })
+    
+  } catch (error) {
+    console.error('立即购买失败:', error)
+    ElMessage.error('操作失败，请重试')
+  }
+}
+
 // 加入购物车
 // 分享商品
 const handleShare = async () => {
@@ -346,6 +399,17 @@ const handleRetry = async () => {
     if (product.value && product.value.images.length > 0) {
       currentImage.value = product.value.images[0]
     }
+  }
+}
+
+// 获取当前用户ID
+const getCurrentUserId = async (): Promise<string> => {
+  try {
+    const { getCurrentUserId } = await import('@/utils/auth')
+    return await getCurrentUserId()
+  } catch (error) {
+    console.error('获取用户ID失败:', error)
+    return ''
   }
 }
 

@@ -65,10 +65,41 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '我的收藏', requiresAuth: true }
   },
   {
+    path: '/credit',
+    name: 'CreditDetail',
+    component: () => import('@/views/user/CreditDetailView.vue'),
+    meta: { title: '信用详情', requiresAuth: true }
+  },
+  {
     path: '/cart',
     name: 'Cart',
     component: () => import('@/views/user/CartView.vue'),
     meta: { title: '我的购物车', requiresAuth: true }
+  },
+  // 交易相关路由
+  {
+    path: '/transactions',
+    name: 'TransactionList',
+    component: () => import('@/views/transactions/TransactionListView.vue'),
+    meta: { title: '我的交易', requiresAuth: true }
+  },
+  {
+    path: '/transactions/:id',
+    name: 'TransactionDetail',
+    component: () => import('@/views/transactions/TransactionDetailView.vue'),
+    meta: { title: '交易详情', requiresAuth: true }
+  },
+  {
+    path: '/transactions/create',
+    name: 'TransactionCreate',
+    component: () => import('@/views/transactions/TransactionCreateView.vue'),
+    meta: { title: '创建交易', requiresAuth: true }
+  },
+  {
+    path: '/transactions/:id/payment',
+    name: 'TransactionPayment',
+    component: () => import('@/views/transactions/PaymentView.vue'),
+    meta: { title: '付款确认', requiresAuth: true }
   },
   {
     path: '/campus',
@@ -144,6 +175,49 @@ const router = createRouter({
 })
 
 // 路由守卫 - 权限验证
+// 使用会话缓存避免重复检查
+let cachedSession: any = null
+let sessionCheckPromise: Promise<any> | null = null
+let adminCheckPromise: Promise<boolean> | null = null
+
+async function getSessionWithCache() {
+  // 如果已有缓存的会话且未过期，直接返回
+  if (cachedSession && cachedSession.expires_at && cachedSession.expires_at > Date.now() / 1000) {
+    return cachedSession
+  }
+  
+  // 如果正在检查会话，返回现有promise
+  if (sessionCheckPromise) {
+    return sessionCheckPromise
+  }
+  
+  // 开始新的会话检查
+  sessionCheckPromise = supabase.auth.getSession().then(({ data: { session } }) => {
+    cachedSession = session
+    return session
+  }).finally(() => {
+    sessionCheckPromise = null
+  })
+  
+  return sessionCheckPromise
+}
+
+async function checkAdminPermissionWithCache() {
+  // 如果正在检查管理员权限，返回现有promise
+  if (adminCheckPromise) {
+    return adminCheckPromise
+  }
+  
+  // 开始新的管理员权限检查
+  adminCheckPromise = import('@/api/admin').then(({ AdminAPI }) => {
+    return AdminAPI.checkAdminPermission()
+  }).finally(() => {
+    adminCheckPromise = null
+  })
+  
+  return adminCheckPromise
+}
+
 router.beforeEach(async (to, from, next) => {
   // 设置页面标题
   if (to.meta.title) {
@@ -153,8 +227,8 @@ router.beforeEach(async (to, from, next) => {
   // 检查是否需要登录
   if (to.meta.requiresAuth) {
     try {
-      // 使用Supabase检查当前会话
-      const { data: { session } } = await supabase.auth.getSession()
+      // 使用缓存机制检查会话
+      const session = await getSessionWithCache()
       
       if (!session) {
         // 没有会话，跳转到登录页
@@ -169,9 +243,7 @@ router.beforeEach(async (to, from, next) => {
       // 检查是否需要管理员权限
       if (to.meta.requiresAdmin) {
         try {
-          // 导入管理员API
-          const { AdminAPI } = await import('@/api/admin')
-          const hasAdminPermission = await AdminAPI.checkAdminPermission()
+          const hasAdminPermission = await checkAdminPermissionWithCache()
           
           if (!hasAdminPermission) {
             // 没有管理员权限，跳转到首页并显示提示

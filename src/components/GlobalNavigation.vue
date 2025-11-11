@@ -50,6 +50,17 @@
             
             <div 
               class="nav-item" 
+              :class="{ active: activeMenu === '/transactions' }"
+              @click="$router.push('/transactions')"
+            >
+              <div class="nav-icon">
+                <el-icon><Document /></el-icon>
+              </div>
+              <span class="nav-label">我的交易</span>
+            </div>
+            
+            <div 
+              class="nav-item" 
               :class="{ active: activeMenu === '/ai-assistant' }"
               @click="$router.push('/ai-assistant')"
             >
