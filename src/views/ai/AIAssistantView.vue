@@ -394,7 +394,10 @@ onMounted(async () => {
     isLoading.value = true
     // 初始化价格分析数据
     await priceStore.getCategoryPriceStats()
-    ElMessage.success('AI助手已准备就绪！')
+    ElMessage.success({
+      message: 'AI助手已准备就绪！',
+      offset: 80
+    })
   } catch (error) {
     console.error('AI助手页面初始化失败:', error)
     hasError.value = true

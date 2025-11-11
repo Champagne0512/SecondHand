@@ -18,7 +18,7 @@
             </div>
             <h3>校园动态</h3>
             <p>分享生活点滴，了解校园新鲜事</p>
-            <div class="nav-stats">{{ campusStore.campusPosts.length }} 条动态</div>
+            <div class="nav-stats">今日动态：{{ campusStore.todayPostsCount }} 条</div>
           </div>
         </el-col>
         
@@ -29,7 +29,7 @@
             </div>
             <h3>校园活动</h3>
             <p>参与精彩活动，丰富校园生活</p>
-            <div class="nav-stats">{{ campusStore.campusEvents.length }} 个活动</div>
+            <div class="nav-stats">今日活动：{{ campusStore.todayEventsCount }} 个</div>
           </div>
         </el-col>
         
@@ -40,7 +40,7 @@
             </div>
             <h3>失物招领</h3>
             <p>丢失物品寻找，捡到物品归还</p>
-            <div class="nav-stats">{{ campusStore.lostFoundItems.length }} 条信息</div>
+            <div class="nav-stats">今日信息：{{ campusStore.todayLostFoundCount }} 条</div>
           </div>
         </el-col>
         
