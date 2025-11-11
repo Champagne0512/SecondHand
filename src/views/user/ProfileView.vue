@@ -51,6 +51,12 @@
                   <el-icon><Medal /></el-icon>
                   <span>信用详情</span>
                 </el-menu-item>
+                
+                <!-- 管理员入口 -->
+                <el-menu-item v-if="userStore.isAdmin" index="admin" @click="goToAdminPanel">
+                  <el-icon><Setting /></el-icon>
+                  <span>管理员面板</span>
+                </el-menu-item>
               </el-menu>
             </nav>
           </aside>
@@ -421,7 +427,7 @@ import { supabase } from '@/lib/supabase'
 
 import { 
   ShoppingBag, User, Goods, Star, 
-  ChatDotRound, Plus, Message, Medal,
+  ChatDotRound, Plus, Message, Medal, Setting,
   Clock, TrendCharts, CircleCheck, Document, Picture
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -907,6 +913,11 @@ const handleDeletePost = async (post: any) => {
       ElMessage.error(error.message || '删除动态失败，请重试')
     }
   }
+}
+
+// 跳转到管理员面板
+const goToAdminPanel = () => {
+  router.push('/admin')
 }
 
 onMounted(async () => {
