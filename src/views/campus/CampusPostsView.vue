@@ -71,15 +71,13 @@
             
             <!-- 图片展示 -->
             <div v-if="post.images && post.images.length > 0" class="post-images">
-              <el-image
+              <img
                 v-for="(image, index) in post.images"
                 :key="index"
                 :src="image"
-                :preview-src-list="post.images"
-                :initial-index="index"
-                fit="cover"
+                :alt="`图片${index + 1}`"
                 class="post-image"
-                @click="previewImage(image, post.images)"
+                @click="previewImage(image, post.images, index)"
               />
             </div>
 
@@ -287,6 +285,15 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 图片查看器 -->
+    <ImageViewer
+      v-model:visible="showImageViewer"
+      :image-url="currentImage"
+      :image-list="currentImageList"
+      :initial-index="currentImageIndex"
+      @close="closeImageViewer"
+    />
   </div>
 </template>
 
@@ -298,6 +305,7 @@ import { supabase } from '@/lib/supabase'
 import type { UploadProps, UploadUserFile } from 'element-plus'
 
 import { Plus, Search, Star } from '@element-plus/icons-vue'
+import ImageViewer from '@/components/ImageViewer.vue'
 
 const campusStore = useCampusStore()
 
@@ -305,6 +313,10 @@ const campusStore = useCampusStore()
 const searchKeyword = ref('')
 const showPublishDialog = ref(false)
 const showCommentsDialog = ref(false)
+const showImageViewer = ref(false)
+const currentImage = ref('')
+const currentImageList = ref<string[]>([])
+const currentImageIndex = ref(0)
 const currentPost = ref<any>(null)
 const comments = ref<any[]>([])
 const newComment = ref('')
@@ -819,8 +831,18 @@ const sharePost = (post: any) => {
   }
 }
 
-const previewImage = (image: string, images: string[]) => {
-  // Element Plus的el-image组件已经内置了预览功能
+const previewImage = (image: string, images: string[], index: number) => {
+  currentImage.value = image
+  currentImageList.value = images
+  currentImageIndex.value = index
+  showImageViewer.value = true
+}
+
+const closeImageViewer = () => {
+  showImageViewer.value = false
+  currentImage.value = ''
+  currentImageList.value = []
+  currentImageIndex.value = 0
 }
 
 const handleCloseDialog = () => {
