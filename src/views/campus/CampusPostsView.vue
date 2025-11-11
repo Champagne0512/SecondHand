@@ -102,27 +102,27 @@
             <el-button 
               :type="post.isLiked ? 'danger' : 'default'"
               size="small"
-              :icon="post.isLiked ? 'el-icon-star-on' : 'el-icon-star-off'"
               @click="toggleLike(post)"
             >
+              <el-icon><StarFilled v-if="post.isLiked" /><Star v-else /></el-icon>
               {{ post.likes }} 点赞
             </el-button>
             
             <el-button 
               type="default"
               size="small"
-              icon="el-icon-chat-dot-round"
               @click="showComments(post)"
             >
+              <el-icon><ChatDotRound /></el-icon>
               {{ post.comments }} 评论
             </el-button>
             
             <el-button 
               type="default"
               size="small"
-              icon="el-icon-share"
               @click="sharePost(post)"
             >
+              <el-icon><Share /></el-icon>
               分享
             </el-button>
           </div>
@@ -304,7 +304,7 @@ import { ElMessage } from 'element-plus'
 import { supabase } from '@/lib/supabase'
 import type { UploadProps, UploadUserFile } from 'element-plus'
 
-import { Plus, Search, Star } from '@element-plus/icons-vue'
+import { Plus, Search, Star, StarFilled, ChatDotRound, Share } from '@element-plus/icons-vue'
 import ImageViewer from '@/components/ImageViewer.vue'
 
 const campusStore = useCampusStore()

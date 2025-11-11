@@ -266,6 +266,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useCampusStore } from '@/stores/campus'
 import { ElMessage } from 'element-plus'
 import ImageViewer from '@/components/ImageViewer.vue'
+import { School, ChatDotRound, Promotion, Collection, Star, Share } from '@element-plus/icons-vue'
 
 const campusStore = useCampusStore()
 

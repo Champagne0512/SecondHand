@@ -268,10 +268,7 @@ import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
 
 import { 
-  ShoppingBag, Search, Goods, Plus, User, 
-  ChatDotRound, Star, ArrowRight, Collection, 
-  Document, Setting, Message, Bell, MagicStick, School,
-  Refresh, Share, Top, Bottom, ShoppingCart
+  ShoppingBag, Search, ChatDotRound, Star
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
