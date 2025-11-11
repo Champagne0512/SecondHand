@@ -77,6 +77,24 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '我的购物车', requiresAuth: true }
   },
   {
+    path: '/transaction',
+    name: 'TransactionList',
+    component: () => import('@/views/transaction/TransactionListView.vue'),
+    meta: { title: '我的交易', requiresAuth: true }
+  },
+  {
+    path: '/transaction/:id',
+    name: 'TransactionDetail',
+    component: () => import('@/views/transaction/TransactionDetailView.vue'),
+    meta: { title: '交易详情', requiresAuth: true }
+  },
+  {
+    path: '/checkout',
+    name: 'Checkout',
+    component: () => import('@/views/transaction/CheckoutView.vue'),
+    meta: { title: '结算订单', requiresAuth: true }
+  },
+  {
     path: '/campus',
     name: 'Campus',
     component: () => import('@/views/campus/CampusView.vue'),

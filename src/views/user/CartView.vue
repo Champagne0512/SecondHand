@@ -303,9 +303,14 @@ const handleCheckout = () => {
     return
   }
   
-  // 这里可以跳转到结算页面
-  ElMessage.info('结算功能开发中...')
-  // router.push('/checkout')
+  // 保存选中的商品到sessionStorage，用于结算页面
+  const selectedCartItems = cartStore.cartItems.filter(item => 
+    selectedItems.value.includes(item.product_id)
+  )
+  sessionStorage.setItem('checkoutItems', JSON.stringify(selectedCartItems))
+  
+  // 跳转到结算页面
+  router.push('/checkout')
 }
 </script>
 
