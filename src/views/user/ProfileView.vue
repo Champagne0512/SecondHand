@@ -43,6 +43,10 @@
                   <el-icon><Message /></el-icon>
                   <span>消息中心</span>
                 </el-menu-item>
+                <el-menu-item index="my-transactions">
+                  <el-icon><ShoppingBag /></el-icon>
+                  <span>我的交易</span>
+                </el-menu-item>
                 <el-menu-item index="credit">
                   <el-icon><Medal /></el-icon>
                   <span>信用详情</span>
@@ -243,6 +247,121 @@
               </div>
             </section>
 
+            <!-- 我的交易 -->
+            <section v-else-if="activeTab === 'my-transactions'" class="tab-content">
+              <div class="tab-header">
+                <h2 class="tab-title">我的交易</h2>
+                <el-button type="primary" @click="$router.push('/transactions')">
+                  查看全部交易
+                </el-button>
+              </div>
+              
+              <!-- 交易统计 -->
+              <div class="transaction-stats">
+                <div class="stat-card">
+                  <div class="stat-icon pending">
+                    <el-icon><Clock /></el-icon>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value">{{ pendingTransactions.length }}</span>
+                    <span class="stat-label">待处理</span>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon active">
+                    <el-icon><TrendCharts /></el-icon>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value">{{ activeTransactions.length }}</span>
+                    <span class="stat-label">进行中</span>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon completed">
+                    <el-icon><CircleCheck /></el-icon>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value">{{ completedTransactions.length }}</span>
+                    <span class="stat-label">已完成</span>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-icon total">
+                    <el-icon><Document /></el-icon>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value">{{ totalTransactions }}</span>
+                    <span class="stat-label">总交易</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 交易列表 -->
+              <div v-if="recentTransactions.length > 0" class="transactions-preview">
+                <h3 class="preview-title">最近交易</h3>
+                <div class="transactions-list">
+                  <div 
+                    v-for="transaction in recentTransactions" 
+                    :key="transaction.id"
+                    class="transaction-item"
+                    @click="viewTransactionDetail(transaction.id)"
+                  >
+                    <div class="transaction-image">
+                      <el-image 
+                        :src="transaction.product_image" 
+                        :alt="transaction.product_name"
+                        fit="cover"
+                        class="product-image"
+                      >
+                        <template #error>
+                          <div class="image-error">
+                            <el-icon><Picture /></el-icon>
+                          </div>
+                        </template>
+                      </el-image>
+                    </div>
+                    
+                    <div class="transaction-info">
+                      <h4 class="product-name">{{ transaction.product_name }}</h4>
+                      <p class="transaction-meta">
+                        <span class="order-no">订单号: {{ transaction.order_no }}</span>
+                        <span class="amount">¥{{ transaction.total_amount.toFixed(2) }}</span>
+                      </p>
+                      <p class="counterparty">
+                        {{ isBuyer(transaction) ? '卖家' : '买家' }}: 
+                        {{ isBuyer(transaction) ? transaction.seller_username : transaction.buyer_username }}
+                      </p>
+                      <p class="create-time">{{ formatTime(transaction.created_at) }}</p>
+                    </div>
+                    
+                    <div class="transaction-status">
+                      <el-tag 
+                        :type="getTransactionStatusType(transaction.status)"
+                        class="status-tag"
+                      >
+                        {{ getTransactionStatusText(transaction.status) }}
+                      </el-tag>
+                      <el-button 
+                        v-if="showTransactionAction(transaction)"
+                        :type="getTransactionActionType(transaction)"
+                        size="small"
+                        @click.stop="handleTransactionAction(transaction)"
+                      >
+                        {{ getTransactionActionText(transaction) }}
+                      </el-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div v-else class="empty-state">
+                <el-empty description="暂无交易记录" />
+                <el-button type="primary" @click="$router.push('/products')">
+                  去逛逛商品
+                </el-button>
+              </div>
+            </section>
+
             <!-- 信用详情 -->
             <section v-else-if="activeTab === 'credit'" class="tab-content">
               <div class="tab-header">
@@ -270,7 +389,7 @@
                 <div class="credit-stats">
                   <div class="stat-item">
                     <span class="stat-label">完成交易</span>
-                    <span class="stat-value">{{ completedTransactions || 0 }}</span>
+                    <span class="stat-value">{{ completedTransactionsCount || 0 }}</span>
                   </div>
                   <div class="stat-item">
                     <span class="stat-label">好评率</span>
@@ -296,12 +415,14 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useProductStore } from '@/stores/products'
 import { useCampusStore } from '@/stores/campus'
+import { useTransactionStore } from '@/stores/transaction'
 import { supabaseProductApi } from '@/api/supabase'
 import { supabase } from '@/lib/supabase'
 
 import { 
   ShoppingBag, User, Goods, Star, 
-  ChatDotRound, Plus, Message, Medal
+  ChatDotRound, Plus, Message, Medal,
+  Clock, TrendCharts, CircleCheck, Document, Picture
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadProps } from 'element-plus'
@@ -310,6 +431,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const productStore = useProductStore()
 const campusStore = useCampusStore()
+const transactionStore = useTransactionStore()
 
 const activeTab = ref('profile')
 const profileFormRef = ref<FormInstance>()
@@ -400,8 +522,15 @@ const unreadCount = ref(3)
 const creditScore = ref(100)
 const positiveReviews = ref(0)
 const totalReviews = ref(0)
-const completedTransactions = ref(0)
+const completedTransactionsCount = ref(0)
 const responseSpeed = ref('良好')
+
+// 交易相关计算属性
+const pendingTransactions = computed(() => transactionStore.pendingTransactions)
+const activeTransactions = computed(() => transactionStore.activeTransactions)
+const completedTransactions = computed(() => transactionStore.completedTransactions)
+const totalTransactions = computed(() => transactionStore.totalTransactions)
+const recentTransactions = computed(() => transactionStore.transactions.slice(0, 5))
 
 // 格式化日期
 const formatDate = (dateString: string) => {
@@ -461,6 +590,125 @@ const fetchCreditData = async () => {
   }
 }
 
+// 获取我的交易数据
+const fetchMyTransactions = async () => {
+  try {
+    await transactionStore.fetchTransactions()
+  } catch (error) {
+    console.error('获取交易数据失败:', error)
+    ElMessage.error('获取交易列表失败')
+  }
+}
+
+// 交易相关方法
+const isBuyer = (transaction: any) => {
+  return userStore.user?.id === transaction.buyer_id
+}
+
+const getTransactionStatusType = (status: string) => {
+  const typeMap: Record<string, any> = {
+    'pending': 'warning',
+    'paid': 'primary',
+    'shipped': 'info',
+    'received': 'success',
+    'completed': 'success',
+    'cancelled': 'danger',
+    'refunding': 'warning',
+    'refunded': 'info'
+  }
+  return typeMap[status] || 'info'
+}
+
+const getTransactionStatusText = (status: string) => {
+  const textMap: Record<string, string> = {
+    'pending': '待付款',
+    'paid': '已付款',
+    'shipped': '已发货',
+    'received': '已收货',
+    'completed': '已完成',
+    'cancelled': '已取消',
+    'refunding': '退款中',
+    'refunded': '已退款'
+  }
+  return textMap[status] || status
+}
+
+const showTransactionAction = (transaction: any) => {
+  const isBuyerTransaction = isBuyer(transaction)
+  
+  if (isBuyerTransaction) {
+    return ['pending', 'paid', 'shipped'].includes(transaction.status)
+  } else {
+    return ['paid'].includes(transaction.status)
+  }
+}
+
+const getTransactionActionType = (transaction: any) => {
+  const isBuyerTransaction = isBuyer(transaction)
+  
+  if (isBuyerTransaction) {
+    if (transaction.status === 'pending') return 'primary'
+    if (transaction.status === 'shipped') return 'success'
+    return 'primary'
+  } else {
+    return 'primary'
+  }
+}
+
+const getTransactionActionText = (transaction: any) => {
+  const isBuyerTransaction = isBuyer(transaction)
+  
+  if (isBuyerTransaction) {
+    switch (transaction.status) {
+      case 'pending': return '去付款'
+      case 'shipped': return '确认收货'
+      default: return '查看'
+    }
+  } else {
+    return '发货'
+  }
+}
+
+const viewTransactionDetail = (transactionId: string) => {
+  router.push(`/transaction/${transactionId}`)
+}
+
+const handleTransactionAction = async (transaction: any) => {
+  const isBuyerTransaction = isBuyer(transaction)
+  
+  try {
+    if (isBuyerTransaction) {
+      switch (transaction.status) {
+        case 'pending':
+          // 跳转到支付页面
+          router.push(`/transaction/${transaction.id}/payment`)
+          break
+        case 'shipped':
+          // 确认收货
+          await transactionStore.updateTransactionStatus(transaction.id, 'received', '买家确认收货')
+          break
+      }
+    } else {
+      // 卖家发货
+      if (transaction.status === 'paid') {
+        await transactionStore.updateTransactionStatus(transaction.id, 'shipped', '卖家已发货')
+      }
+    }
+  } catch (error) {
+    console.error('处理交易操作失败:', error)
+  }
+}
+
+const formatTime = (timeString: string) => {
+  return new Date(timeString).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 // 菜单选择
 const handleMenuSelect = async (index: string) => {
   activeTab.value = index
@@ -470,6 +718,8 @@ const handleMenuSelect = async (index: string) => {
     await fetchMyProducts()
   } else if (index === 'my-posts') {
     await fetchMyPosts()
+  } else if (index === 'my-transactions') {
+    await fetchMyTransactions()
   } else if (index === 'credit') {
     await fetchCreditData()
   }
@@ -1172,91 +1422,6 @@ onMounted(async () => {
   color: #495057;
 }
 
-/* 信用详情样式 */
-.credit-overview {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
-.credit-score-card {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  padding: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  color: white;
-}
-
-.score-display {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.score-circle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 120px;
-  height: 120px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.score-value {
-  font-size: 36px;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.score-label {
-  font-size: 14px;
-  opacity: 0.9;
-  margin-top: 4px;
-}
-
-.score-info h3 {
-  margin: 0 0 12px 0;
-  font-size: 20px;
-}
-
-.score-info p {
-  margin: 8px 0;
-  opacity: 0.9;
-}
-
-.credit-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #6c757d;
-  margin-bottom: 8px;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #495057;
-}
-
 /* 空状态 */
 .empty-state {
   text-align: center;
@@ -1307,6 +1472,208 @@ onMounted(async () => {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+}
+
+/* 交易相关样式 */
+.transaction-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-right: 16px;
+  font-size: 24px;
+}
+
+.stat-icon.pending {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.stat-icon.active {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.stat-icon.completed {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.stat-icon.total {
+  background: #f9f0ff;
+  color: #722ed1;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #303133;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #606266;
+  margin-top: 4px;
+}
+
+.transactions-preview {
+  margin-top: 24px;
+}
+
+.preview-title {
+  font-size: 18px;
+  color: #303133;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.transaction-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.transaction-item:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+.transaction-image {
+  width: 60px;
+  height: 60px;
+  margin-right: 16px;
+}
+
+.transaction-image .product-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.image-error {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  border-radius: 6px;
+  color: #c0c4cc;
+}
+
+.transaction-info {
+  flex: 1;
+}
+
+.transaction-info .product-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 8px 0;
+}
+
+.transaction-meta {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.transaction-meta .amount {
+  font-weight: 600;
+  color: #f56c6c;
+}
+
+.counterparty, .create-time {
+  font-size: 13px;
+  color: #909399;
+  margin: 4px 0;
+}
+
+.transaction-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.status-tag {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .transaction-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .transaction-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .transaction-status {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .transaction-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .transaction-meta {
+    flex-direction: column;
+    gap: 4px;
   }
 }
 </style>
