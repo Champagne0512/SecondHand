@@ -78,7 +78,10 @@ const activeTab = ref('chat')
 onMounted(() => {
   // 内置AI模式，自动初始化
   aiStore.configureAI()
-  ElMessage.success('🤖 AI助手已准备就绪！')
+  ElMessage.success({
+    message: '🤖 AI助手已准备就绪！',
+    offset: 80
+  })
 })
 
 // 子组件定义（内联组件以保持文件结构简洁）

@@ -318,7 +318,10 @@ const isAnalyzingPrice = ref(false)
   onMounted(() => {
     // 内置AI模式，自动初始化
     aiStore.configureAI()
-    ElMessage.success('🤖 AI助手已准备就绪！')
+    ElMessage.success({
+      message: '🤖 AI助手已准备就绪！',
+      offset: 80
+    })
   })
 
 // 方法

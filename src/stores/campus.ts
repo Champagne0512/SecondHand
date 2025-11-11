@@ -91,6 +91,40 @@ export const useCampusStore = defineStore('campus', () => {
     return lostFoundItems.value.filter(item => item.type === filters.value.lostFoundType)
   })
 
+  // 今日帖子数量统计
+  const todayPostsCount = computed(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    return campusPosts.value.filter(post => {
+      const postDate = new Date(post.createdAt)
+      postDate.setHours(0, 0, 0, 0)
+      return postDate.getTime() === today.getTime()
+    }).length
+  })
+
+  const todayEventsCount = computed(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    return campusEvents.value.filter(event => {
+      const eventDate = new Date(event.createdAt)
+      eventDate.setHours(0, 0, 0, 0)
+      return eventDate.getTime() === today.getTime()
+    }).length
+  })
+
+  const todayLostFoundCount = computed(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    return lostFoundItems.value.filter(item => {
+      const itemDate = new Date(item.createdAt)
+      itemDate.setHours(0, 0, 0, 0)
+      return itemDate.getTime() === today.getTime()
+    }).length
+  })
+
   // 获取校园动态
   const getCampusPosts = async (limit: number = 20) => {
     isLoading.value = true
@@ -475,6 +509,9 @@ export const useCampusStore = defineStore('campus', () => {
     filteredPosts,
     filteredEvents,
     filteredLostFound,
+    todayPostsCount,
+    todayEventsCount,
+    todayLostFoundCount,
     getCampusPosts,
     publishCampusPost,
     getCampusEvents,
