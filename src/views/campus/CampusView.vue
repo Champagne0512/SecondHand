@@ -93,7 +93,7 @@
                 :key="index"
                 :src="image" 
                 :alt="`图片${index + 1}`"
-                @click.stop="previewImage(image)"
+                @click.stop="previewImage(image, post.images, index)"
               />
             </div>
           </div>
@@ -249,6 +249,15 @@
         </el-row>
       </div>
     </div>
+
+    <!-- 图片查看器 -->
+    <ImageViewer
+      v-model:visible="showImageViewer"
+      :image-url="currentImage"
+      :image-list="currentImageList"
+      :initial-index="currentImageIndex"
+      @close="closeImageViewer"
+    />
   </div>
 </template>
 
@@ -256,9 +265,15 @@
 import { ref, onMounted, computed } from 'vue'
 import { useCampusStore } from '@/stores/campus'
 import { ElMessage } from 'element-plus'
-
+import ImageViewer from '@/components/ImageViewer.vue'
 
 const campusStore = useCampusStore()
+
+// 图片查看器状态
+const showImageViewer = ref(false)
+const currentImage = ref('')
+const currentImageList = ref<string[]>([])
+const currentImageIndex = ref(0)
 
 // 计算属性
 const recentPosts = computed(() => {
@@ -364,9 +379,18 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('zh-CN')
 }
 
-const previewImage = (imageUrl: string) => {
-  // 这里可以实现图片预览功能
-  ElMessage.info('图片预览功能开发中...')
+const previewImage = (image: string, images: string[], index: number) => {
+  currentImage.value = image
+  currentImageList.value = images
+  currentImageIndex.value = index
+  showImageViewer.value = true
+}
+
+const closeImageViewer = () => {
+  showImageViewer.value = false
+  currentImage.value = ''
+  currentImageList.value = []
+  currentImageIndex.value = 0
 }
 </script>
 

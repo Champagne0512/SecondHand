@@ -58,14 +58,13 @@
           
           <!-- 物品图片 -->
           <div v-if="item.images && item.images.length > 0" class="item-images">
-            <el-image
+            <img
               v-for="(image, index) in item.images.slice(0, 3)"
               :key="index"
               :src="image"
-              :preview-src-list="item.images"
-              :initial-index="index"
-              fit="cover"
+              :alt="`图片${index + 1}`"
               class="item-image"
+              @click="previewImage(image, item.images, index)"
             />
           </div>
           
@@ -281,6 +280,15 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 图片查看器 -->
+    <ImageViewer
+      v-model:visible="showImageViewer"
+      :image-url="currentImage"
+      :image-list="currentImageList"
+      :initial-index="currentImageIndex"
+      @close="closeImageViewer"
+    />
   </div>
 </template>
 
@@ -288,6 +296,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useCampusStore } from '@/stores/campus'
 import { ElMessage } from 'element-plus'
+import ImageViewer from '@/components/ImageViewer.vue'
 
 import { Plus, Search, Collection, Location, Calendar, User, Phone } from '@element-plus/icons-vue'
 
@@ -297,6 +306,10 @@ const campusStore = useCampusStore()
 const searchKeyword = ref('')
 const showPublishDialog = ref(false)
 const showItemDialog = ref(false)
+const showImageViewer = ref(false)
+const currentImage = ref('')
+const currentImageList = ref<string[]>([])
+const currentImageIndex = ref(0)
 const selectedItem = ref<any>(null)
 const filters = ref({
   lostFoundType: 'all'
@@ -430,6 +443,21 @@ const resetPublishForm = () => {
     date: new Date().toISOString().split('T')[0],
     contactInfo: ''
   }
+}
+
+// 图片预览功能
+const previewImage = (image: string, images: string[], index: number) => {
+  currentImage.value = image
+  currentImageList.value = images
+  currentImageIndex.value = index
+  showImageViewer.value = true
+}
+
+const closeImageViewer = () => {
+  showImageViewer.value = false
+  currentImage.value = ''
+  currentImageList.value = []
+  currentImageIndex.value = 0
 }
 </script>
 
